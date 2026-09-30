@@ -66,7 +66,8 @@ export async function POST(req: NextRequest) {
           onProgress: (p) => send(p),
         });
 
-        const topicDates = datesBetween(since, until).slice(-autoTopicDays(body.full));
+        const topicDays = autoTopicDays(body.full);
+        const topicDates = topicDays > 0 ? datesBetween(since, until).slice(-topicDays) : [];
         send({ type: 'topics_start', dates: topicDates.length });
         for (const date of topicDates) {
           send({ type: 'topics_date', date, message: '开始构建话题…' });
@@ -117,6 +118,7 @@ function formatLocalDate(date: Date): string {
 }
 
 function autoTopicDays(full?: boolean): number {
+  if (process.env.WECHAT_RADAR_AI_ENABLED === '0') return 0;
   const configured = Number(process.env.WECHAT_RADAR_AUTO_TOPIC_DAYS ?? (full ? 14 : 31));
-  return Number.isFinite(configured) && configured > 0 ? Math.floor(configured) : 31;
+  return Number.isFinite(configured) && configured >= 0 ? Math.floor(configured) : 31;
 }

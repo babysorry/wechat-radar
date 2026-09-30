@@ -21,9 +21,33 @@ async function wxRaw(args: string[], opts = DEFAULT_OPTS): Promise<string> {
   return stdout;
 }
 
+function isNoRecordsError(error: unknown): boolean {
+  const stderr = (error as { stderr?: string } | null)?.stderr ?? '';
+  return /找不到 .+ 的消息记录/.test(stderr);
+}
+
 async function wxJson<T>(args: string[], opts = DEFAULT_OPTS): Promise<T> {
   const stdout = await wxRaw([...args, '--json'], opts);
-  return JSON.parse(stdout) as T;
+  const parsed = JSON.parse(stdout);
+  if (parsed?.meta?.unknown_shards?.length || parsed?.meta?.status === 'possibly_stale_unknown_shards') {
+    throw new Error('普通聊天消息分片缺少密钥，请重新运行微信初始化脚本');
+  }
+  // Newer wx-cli versions return arrays inside a metadata wrapper.
+  const arrayKeys: Record<string, string[]> = {
+    sessions: ['sessions'],
+    history: ['messages'],
+    'new-messages': ['messages'],
+    members: ['members'],
+  };
+  const keys = arrayKeys[args[0]];
+  if (keys) {
+    if (Array.isArray(parsed)) return parsed as T;
+    for (const key of keys) {
+      if (Array.isArray(parsed?.[key])) return parsed[key] as T;
+    }
+    throw new Error(`wx ${args[0]} returned an unexpected response format`);
+  }
+  return (parsed?.stats ?? parsed) as T;
 }
 
 export async function wxSessions(limit = 500): Promise<WxSession[]> {
@@ -44,16 +68,40 @@ export async function wxHistory(
   until: string,
   limit = 1000,
 ): Promise<WxMessage[]> {
-  return wxJson<WxMessage[]>([
-    'history',
-    chat,
-    '--since',
-    since,
-    '--until',
-    until,
-    '-n',
-    String(limit),
-  ]);
+  try {
+    return await wxJson<WxMessage[]>([
+      'history',
+      chat,
+      '--since',
+      since,
+      '--until',
+      until,
+      '-n',
+      String(limit),
+    ]);
+  } catch (error) {
+    // wx-cli 0.6.3 reports an error when the requested date window has no
+    // matching shard. Confirm an empty window with stats before accepting it.
+    if (isNoRecordsError(error)) {
+      try {
+        const stats = await wxStats(chat, since, until);
+        if (stats.total === 0) return [];
+      } catch (statsError) {
+        // A purged local history can also have no stats table. Accept an empty
+        // window only when the session confirms its last activity predates it.
+        if (isNoRecordsError(statsError)) {
+          const start = Date.parse(since.length === 10 ? `${since}T00:00:00` : since.replace(' ', 'T')) / 1000;
+          if (Number.isFinite(start)) {
+            const sessions = await wxSessions(500);
+            const session = sessions.find((item) => item.username === chat || item.chat === chat);
+            if (session && session.timestamp > 0 && session.timestamp < start) return [];
+          }
+        }
+        throw statsError;
+      }
+    }
+    throw error;
+  }
 }
 
 export async function wxNewMessages(limit = 50): Promise<WxNewMessage[]> {
@@ -68,7 +116,8 @@ export async function wxDaemonStatus(): Promise<WxDaemonStatus> {
   try {
     const out = await wxRaw(['daemon', 'status']);
     const lower = out.toLowerCase();
-    const running = lower.includes('running') || lower.includes('运行');
+    const stopped = /\bnot\s+running\b|\bstopped\b|未运行|未启动|没有运行/.test(lower);
+    const running = !stopped && (/\brunning\b/.test(lower) || lower.includes('运行中'));
     const pidMatch = out.match(/pid[^\d]*(\d+)/i);
     return {
       running,

@@ -405,6 +405,9 @@ export async function buildTopicsForDate(
   date: string,
   onProgress?: (p: TopicProgress) => void,
 ): Promise<{ topics: number; messages: number }> {
+  if (process.env.WECHAT_RADAR_AI_ENABLED === '0') {
+    throw new Error('本机部署尚未开启 AI 话题分析');
+  }
   onProgress?.({ type: 'load', message: '加载当日消息…' });
   const msgs = loadCandidateMessages(date);
   if (msgs.length === 0) {

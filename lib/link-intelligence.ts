@@ -392,6 +392,7 @@ ${rows}`;
 }
 
 async function generateTitlesAndKeys(items: LinkIntelligenceItem[]) {
+  if (process.env.WECHAT_RADAR_AI_ENABLED === '0') return;
   if (items.length === 0) return;
   try {
     const response = await runCodexJson<GeneratedLinkTitleResponse>(

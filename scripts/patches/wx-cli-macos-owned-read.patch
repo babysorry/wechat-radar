@@ -1,0 +1,189 @@
+diff --git a/src/scanner/macos.rs b/src/scanner/macos.rs
+index 4b3ba53..5f07742 100644
+--- a/src/scanner/macos.rs
++++ b/src/scanner/macos.rs
+@@ -30,7 +30,7 @@ const VM_REGION_BASIC_INFO_64: i32 = 9;
+ const CHUNK_SIZE: usize = 2 * 1024 * 1024; // 2MB
+ 
+ // vm_region_basic_info_64 结构体
+-#[repr(C)]
++#[repr(C, packed(4))]
+ struct VmRegionBasicInfo64 {
+     protection: i32,
+     max_protection: i32,
+@@ -53,8 +53,6 @@ type mach_vm_address_t = u64;
+ type mach_vm_size_t = u64;
+ #[allow(non_camel_case_types)]
+ type mach_msg_type_number_t = u32;
+-#[allow(non_camel_case_types)]
+-type vm_offset_t = usize;
+ #[allow(non_camel_case_types, dead_code)]
+ type vm_prot_t = i32;
+ 
+@@ -77,17 +75,12 @@ extern "C" {
+         info_count: *mut mach_msg_type_number_t,
+         obj_name: *mut mach_port_t,
+     ) -> kern_return_t;
+-    fn mach_vm_read(
+-        task: mach_port_t,
+-        addr: mach_vm_address_t,
+-        size: mach_vm_size_t,
+-        data: *mut vm_offset_t,
+-        data_cnt: *mut mach_msg_type_number_t,
+-    ) -> kern_return_t;
+-    fn mach_vm_deallocate(
++    fn mach_vm_read_overwrite(
+         task: mach_port_t,
+         addr: mach_vm_address_t,
+         size: mach_vm_size_t,
++        data: mach_vm_address_t,
++        out_size: *mut mach_vm_size_t,
+     ) -> kern_return_t;
+ }
+ 
+@@ -421,33 +414,17 @@ fn scan_region(
+     extra_keys: &mut Vec<String>,
+     seen_extra: &mut HashSet<String>,
+ ) -> u64 {
+-    let end = addr + size;
++    let end = addr.saturating_add(size);
+     let mut ca = addr;
+     let mut bytes_read: u64 = 0;
++    let mut storage = vec![0u8; CHUNK_SIZE + 1];
+ 
+     while ca < end {
+         let cs = std::cmp::min(end - ca, CHUNK_SIZE as u64);
+-
+-        let mut data: vm_offset_t = 0;
+-        let mut dc: mach_msg_type_number_t = 0;
+-
+-        // SAFETY: mach_vm_read 读取目标进程内存到内核缓冲区，
+-        // 返回的 data 指针指向通过 vm_allocate 分配的内存，
+-        // 必须用 mach_vm_deallocate 释放
+-        let kr = unsafe { mach_vm_read(task, ca, cs, &mut data, &mut dc) };
+-
+-        if kr == KERN_SUCCESS {
+-            // SAFETY: data 是 mach_vm_read 返回的有效指针，dc 是字节数
+-            let buf: &[u8] = unsafe { std::slice::from_raw_parts(data as *const u8, dc as usize) };
+-
++        if let Some(buf) = read_owned_chunk(task, ca, cs as usize, &mut storage) {
+             search_pattern(buf, raw_keys);
+             collect_salt_adjacent_keys(buf, salts, extra_keys, seen_extra);
+-            bytes_read += dc as u64;
+-
+-            // SAFETY: 释放 mach_vm_read 分配的内核内存
+-            unsafe {
+-                mach_vm_deallocate(mach_task_self(), data as u64, dc as u64);
+-            }
++            bytes_read += buf.len() as u64;
+         }
+ 
+         // 保留最大 pattern 长度以处理跨块边界
+@@ -461,6 +438,37 @@ fn scan_region(
+     bytes_read
+ }
+ 
++/// Copy through the kernel into owned memory. Out-of-line mach_vm_read buffers
++/// can retain a file mapping whose pages later fault with SIGBUS. Different
++/// source/destination page offsets force a byte copy instead of a lazy remap.
++fn read_owned_chunk<'a>(
++    task: mach_port_t,
++    addr: mach_vm_address_t,
++    size: usize,
++    storage: &'a mut [u8],
++) -> Option<&'a [u8]> {
++    if size == 0 || size >= storage.len() {
++        return None;
++    }
++    // SAFETY: querying the system page size has no pointer arguments.
++    let page_size = unsafe { libc::sysconf(libc::_SC_PAGESIZE) };
++    if page_size <= 0 {
++        return None;
++    }
++    let base = storage.as_mut_ptr() as mach_vm_address_t;
++    let offset = usize::from(base % page_size as u64 == addr % page_size as u64);
++    let mut copied: mach_vm_size_t = 0;
++    // SAFETY: storage owns an initialized, writable allocation with at least
++    // size + 1 bytes. The kernel copies at most size bytes into this allocation.
++    let kr = unsafe {
++        mach_vm_read_overwrite(task, addr, size as u64, base + offset as u64, &mut copied)
++    };
++    if kr != KERN_SUCCESS || copied == 0 || copied > size as u64 {
++        return None;
++    }
++    Some(&storage[offset..offset + copied as usize])
++}
++
+ /// 通过 LLDB 在用户/root 态 hook CommonCrypto，捕获 AES-256 key。
+ ///
+ /// 微信 4.x（尤其是 Tencent 官网 ad-hoc 包）在打开加密 DB 时会调用
+@@ -711,6 +719,69 @@ pub(crate) fn search_pattern(buf: &[u8], results: &mut Vec<(String, String)>) {
+ mod tests {
+     use super::*;
+ 
++    #[test]
++    fn region_info_matches_macos_abi() {
++        assert_eq!(std::mem::size_of::<VmRegionBasicInfo64>(), 36);
++        assert_eq!(std::mem::align_of::<VmRegionBasicInfo64>(), 4);
++        assert_eq!(std::mem::offset_of!(VmRegionBasicInfo64, _offset), 20);
++    }
++
++    #[test]
++    fn owned_read_copies_valid_memory() {
++        let source = make_pattern(&[b'a'; 64], &[b'b'; 32]);
++        let mut storage = vec![0u8; source.len() + 1];
++        // SAFETY: the current task port can read our own live allocation.
++        let task = unsafe { mach_task_self() };
++        let copy = read_owned_chunk(task, source.as_ptr() as u64, source.len(), &mut storage)
++            .expect("read our own memory");
++        assert_eq!(copy, source.as_slice());
++        let mut results = Vec::new();
++        search_pattern(copy, &mut results);
++        assert_eq!(results.len(), 1);
++    }
++
++    #[test]
++    fn owned_read_rejects_unmapped_memory() {
++        let mut storage = vec![0u8; 65];
++        // SAFETY: the kernel reports invalid addresses as an error.
++        let task = unsafe { mach_task_self() };
++        assert!(read_owned_chunk(task, 0, 64, &mut storage).is_none());
++    }
++
++    #[test]
++    fn owned_read_handles_truncated_file_mapping_without_sigbus() {
++        use std::os::fd::AsRawFd;
++        let path = std::env::temp_dir().join(format!("wx-scan-regression-{}", std::process::id()));
++        let file = std::fs::OpenOptions::new().create_new(true).read(true).write(true)
++            .open(&path).unwrap();
++        // SAFETY: system page size query has no pointer arguments.
++        let page_size = unsafe { libc::sysconf(libc::_SC_PAGESIZE) } as usize;
++        file.set_len((page_size * 2) as u64).unwrap();
++        // SAFETY: map the valid open file; the mapping is never dereferenced
++        // directly and is released below, even when the backing file shrinks.
++        let mapping = unsafe {
++            libc::mmap(std::ptr::null_mut(), page_size * 2, libc::PROT_READ,
++                libc::MAP_PRIVATE, file.as_raw_fd(), 0)
++        };
++        assert_ne!(mapping, libc::MAP_FAILED);
++        file.set_len(page_size as u64).unwrap();
++        let mut storage = vec![0u8; page_size + 1];
++        // SAFETY: obtain our task port; the bad page is read only by the kernel.
++        let task = unsafe { mach_task_self() };
++        // macOS can either reject a page past EOF or supply a zero-filled page.
++        // Consume every returned byte so a deferred file-page fault is detected.
++        let safe_result = match read_owned_chunk(task, mapping as u64 + page_size as u64,
++            page_size, &mut storage) {
++            None => true,
++            Some(copy) => copy.len() == page_size && copy.iter().all(|byte| *byte == 0),
++        };
++        // SAFETY: this is the exact mapping address and size returned above.
++        unsafe { libc::munmap(mapping, page_size * 2); }
++        drop(file);
++        std::fs::remove_file(path).unwrap();
++        assert!(safe_result, "a file page past EOF must be rejected or safely zero-filled");
++    }
++
+     /// 构造一条合法的 x'<key><salt>' 模式字节串
+     fn make_pattern(key: &[u8; 64], salt: &[u8; 32]) -> Vec<u8> {
+         let mut v = vec![b'x', b'\''];
