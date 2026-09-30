@@ -165,6 +165,13 @@ function migrate(d: Database.Database) {
   ensureColumn(d, 'sync_state', 'failed_chunks', 'INTEGER NOT NULL DEFAULT 0');
   ensureColumn(d, 'sync_state', 'empty_chunks', 'INTEGER NOT NULL DEFAULT 0');
   ensureColumn(d, 'sync_state', 'total_chunks', 'INTEGER NOT NULL DEFAULT 0');
+
+  if (ensureColumn(d, 'groups', 'classifier_key', 'TEXT')) {
+    const update = d.prepare('UPDATE groups SET classifier_key = ? WHERE name = ?');
+    d.transaction(() => {
+      for (const group of DEFAULT_GROUPS) update.run(group.name, group.name);
+    })();
+  }
 }
 
 function ensureColumn(
@@ -174,8 +181,9 @@ function ensureColumn(
   definition: string,
 ) {
   const rows = d.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
-  if (rows.some((r) => r.name === name)) return;
+  if (rows.some((r) => r.name === name)) return false;
   d.prepare(`ALTER TABLE ${table} ADD COLUMN ${name} ${definition}`).run();
+  return true;
 }
 
 const SEED_VERSION = 'qiaomu_v2_2026_05_23';
@@ -214,10 +222,10 @@ function seed(d: Database.Database) {
 
   const now = Date.now();
   const insertOrIgnore = d.prepare(
-    'INSERT OR IGNORE INTO groups (name, color, emoji, sort_order, created_at) VALUES (?, ?, ?, ?, ?)',
+    'INSERT OR IGNORE INTO groups (name, color, emoji, sort_order, created_at, classifier_key) VALUES (?, ?, ?, ?, ?, ?)',
   );
   d.transaction(() => {
-    DEFAULT_GROUPS.forEach((g, i) => insertOrIgnore.run(g.name, g.color, g.emoji, i, now));
+    DEFAULT_GROUPS.forEach((g, i) => insertOrIgnore.run(g.name, g.color, g.emoji, i, now, g.name));
   })();
 
   d.prepare(

@@ -8,6 +8,7 @@
     "db:backup": "node scripts/backup-cockpit-db.mjs",
     "start": "next start",
     "lint": "eslint",
+    "test:categories": "node --test tests/category-management.test.cjs",
     "demo:seed": "node scripts/seed_demo.cjs"
   },
   "dependencies": {

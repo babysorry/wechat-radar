@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   Sparkles,
   Link2,
+  Tags,
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 
@@ -63,7 +64,11 @@ export default function Sidebar() {
     };
     load();
     const id = setInterval(load, 30_000);
-    return () => clearInterval(id);
+    window.addEventListener('categories-updated', load);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener('categories-updated', load);
+    };
   }, []);
 
   return (
@@ -116,6 +121,18 @@ export default function Sidebar() {
           icon={<Folder size={15} />}
           label="未分组"
           count={unsorted}
+        />
+        <NavItem
+          href="/classify"
+          icon={<Sparkles size={15} />}
+          label="智能分类"
+          active={pathname === '/classify'}
+        />
+        <NavItem
+          href="/categories"
+          icon={<Tags size={15} />}
+          label="分类管理"
+          active={pathname === '/categories'}
         />
       </nav>
 

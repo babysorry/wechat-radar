@@ -2,7 +2,8 @@ import type { GroupRow } from './groups';
 
 export function classifyGroupHeuristic(name: string, summary: string, groups: GroupRow[]) {
   const text = `${name} ${summary}`.toLowerCase();
-  const lookup = (target: string) => groups.find((g) => g.name.includes(target));
+  // Keep built-in rules attached to the category when its display name changes.
+  const lookup = (target: string) => groups.find((g) => g.classifier_key?.includes(target));
 
   if (/蝗虫团|huangchong/i.test(name)) {
     const t = lookup('蝗虫');

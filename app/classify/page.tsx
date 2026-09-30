@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
-import { ArrowLeft, Sparkles, Check } from 'lucide-react';
+import { ArrowLeft, Sparkles, Check, Tags } from 'lucide-react';
 
 type Group = { id: number; name: string; color: string; emoji: string | null };
 type Suggestion = {
@@ -20,12 +20,17 @@ export default function ClassifyPage() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [picks, setPicks] = useState<Record<string, number | null>>({});
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const r = await fetch('/api/ai-classify');
-    const j = await r.json();
-    if (j.ok) {
+    setLoading(true);
+    setError(null);
+    try {
+      const r = await fetch('/api/ai-classify');
+      const j = await r.json();
+      if (!r.ok || !j.ok) throw new Error(j.error ?? '分类建议加载失败');
       setGroups(j.groups);
       setSuggestions(j.suggestions);
       const initial: Record<string, number | null> = {};
@@ -33,6 +38,10 @@ export default function ClassifyPage() {
         initial[s.chatroom_id] = s.suggested_group_id;
       }
       setPicks(initial);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '分类建议加载失败');
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -51,18 +60,21 @@ export default function ClassifyPage() {
       setBusy(false);
       return;
     }
-    const r = await fetch('/api/ai-classify', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ picks: list }),
-    });
-    const j = await r.json();
-    setBusy(false);
-    if (j.ok) {
+    try {
+      const r = await fetch('/api/ai-classify', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ picks: list }),
+      });
+      const j = await r.json();
+      if (!r.ok || !j.ok) throw new Error(j.error ?? '分类应用失败');
       setMsg(`已应用 ${j.applied} 条`);
-      load();
-    } else {
-      setMsg('应用失败：' + (j.error ?? '未知'));
+      window.dispatchEvent(new Event('categories-updated'));
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '分类应用失败');
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -71,17 +83,17 @@ export default function ClassifyPage() {
   return (
     <div className="flex h-screen">
       <Sidebar />
-      <main className="flex flex-1 flex-col overflow-hidden">
-        <div className="flex items-center justify-between border-b border-[var(--border-soft)] bg-[var(--chrome-bg)] px-6 py-3 backdrop-blur">
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border-soft)] bg-[var(--chrome-bg)] px-6 py-3 backdrop-blur">
           <div className="flex items-center gap-3">
             <Link href="/" className="text-[var(--text-3)] hover:text-[var(--text)]">
               <ArrowLeft size={16} />
             </Link>
             <div>
-              <div className="report-kicker">AI Classification</div>
+              <div className="report-kicker">Classification</div>
               <div className="flex items-center gap-2 text-[15px] font-semibold">
                 <Sparkles size={16} className="text-[var(--accent)]" />
-                AI 智能分类
+                智能分类
               </div>
               <div className="mt-0.5 text-[11px] text-[var(--text-3)]">
                 {suggestions.length} 个未分组群 · 已建议 {matched} 条
@@ -89,8 +101,9 @@ export default function ClassifyPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <Link href="/categories" className="btn"><Tags size={13} />分类管理</Link>
             {msg && <span className="text-[12px] text-[var(--text-2)]">{msg}</span>}
-            <button className="btn btn-primary" onClick={apply} disabled={busy || matched === 0}>
+            <button className="btn btn-primary" onClick={apply} disabled={busy || loading || matched === 0}>
               <Check size={13} />
               <span>{busy ? '应用中…' : `应用 ${matched} 条`}</span>
             </button>
@@ -98,12 +111,14 @@ export default function ClassifyPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
-          {suggestions.length === 0 ? (
+          <p className="mb-4 text-[12px] text-[var(--text-3)]">根据群名和最近消息的关键词在本机生成建议，选择分类后点击“应用”保存。</p>
+          {error && <div role="alert" className="mb-4 rounded bg-[var(--danger-soft)] p-3 text-[12px] text-[var(--danger)]">{error}<button className="ml-3 underline" onClick={() => void load()} disabled={busy || loading}>重新加载</button></div>}
+          {loading ? <div className="py-20 text-center text-[12px] text-[var(--text-3)]">加载分类建议中…</div> : error ? null : suggestions.length === 0 ? (
             <div className="py-20 text-center text-[12px] text-[var(--text-3)]">
               所有群都已分类
             </div>
           ) : (
-            <div className="card overflow-hidden">
+            <div className="card overflow-x-auto">
               <table className="w-full text-[13px]">
                 <thead className="border-b border-[var(--border-soft)] text-[11px] uppercase tracking-wider text-[var(--text-3)]">
                   <tr>

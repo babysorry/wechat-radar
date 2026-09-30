@@ -7,6 +7,7 @@ export interface GroupRow {
   emoji: string | null;
   sort_order: number;
   created_at: number;
+  classifier_key: string | null;
   member_count?: number;
   message_count?: number;
 }
@@ -29,12 +30,18 @@ export function createGroup(input: { name: string; color: string; emoji?: string
   const stmt = db().prepare(
     'INSERT INTO groups (name, color, emoji, sort_order, created_at) VALUES (?, ?, ?, ?, ?)',
   );
-  const info = stmt.run(input.name, input.color, input.emoji ?? null, max.m + 1, Date.now());
+  const info = stmt.run(input.name, input.color, input.emoji || null, max.m + 1, Date.now());
   return Number(info.lastInsertRowid);
 }
 
 export function deleteGroup(id: number) {
-  db().prepare('DELETE FROM groups WHERE id = ?').run(id);
+  return db().prepare('DELETE FROM groups WHERE id = ?').run(id).changes > 0;
+}
+
+export function updateGroup(id: number, input: { name: string; color: string; emoji?: string }) {
+  return db()
+    .prepare('UPDATE groups SET name = ?, color = ?, emoji = ? WHERE id = ?')
+    .run(input.name, input.color, input.emoji || null, id).changes > 0;
 }
 
 export function tagGroup(chatroomId: string, groupId: number) {
