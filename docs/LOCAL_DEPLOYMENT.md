@@ -33,6 +33,7 @@ node scripts/local-service.mjs status
 node scripts/local-service.mjs stop
 node scripts/local-service.mjs start
 node scripts/local-service.mjs restart
+node scripts/local-service.mjs rebuild
 ```
 
 `stop` 停止本次运行，下次登录 Mac 后仍会启动。移除自动启动服务可执行：
@@ -44,17 +45,26 @@ node scripts/local-service.mjs uninstall
 ## 更新项目后重新构建
 
 ```sh
-node scripts/local-service.mjs stop
-pnpm install --frozen-lockfile
-pnpm build
-node scripts/local-service.mjs start
+node scripts/local-service.mjs rebuild
 ```
+
+这个命令使用本机 Node 和项目内已安装的 Next.js，不依赖终端中的 `pnpm`。它会停止服务、构建并重新启动；构建失败时恢复上一次成功的版本。仅更新代码或本地配置时可以直接使用；如果依赖声明发生变化，需要先安装对应依赖。
 
 此部署已适配当前 pnpm 的原生组件构建配置，并兼容 wx-cli 的旧版数组和新版 metadata 包装格式。
 
 日期范围内没有消息的群会通过统计查询确认空结果，不再误报同步失败；如果出现没有密钥的新普通消息分片，同步仍会提示重新初始化。
 
-本机部署的 `.env.local` 默认设置 `WECHAT_RADAR_AI_ENABLED=0`，同步和统计在本机完成。自动话题及链接的 AI 标题生成未开启；这些功能会调用 Codex CLI，向模型服务发送选取的消息或链接上下文。需要使用时，将该值改为 `1`，配置并登录 Codex CLI，然后重新构建和启动服务。
+本机部署时 AI 分析默认关闭，同步和统计在本机完成。话题及链接的 AI 标题生成会调用 Codex CLI，向模型服务发送选取的消息或链接上下文。需要使用时，先安装并登录 Codex CLI，再在 `.env.local` 设置：
+
+```dotenv
+WECHAT_RADAR_AI_ENABLED=1
+WECHAT_RADAR_AUTO_TOPIC_DAYS=0
+WECHAT_RADAR_CODEX_MODEL=gpt-6-luna
+```
+
+然后运行 `node scripts/local-service.mjs rebuild`。`AUTO_TOPIC_DAYS=0` 表示同步后不自动构建历史话题，可在页面选择日期手动构建；链接的 AI 标题生成也会随 AI 开关启用。模型名称应选择当前账号和 CLI 实际可用的模型，参见 [Codex 官方模型说明](https://learn.chatgpt.com/docs/models)。本机已用 Codex CLI `0.159.2` 和 `gpt-6-luna` 通过无聊天内容的连接测试。
+
+看板的分析调用忽略 Codex 的全局运行配置，继续使用已有登录状态，并由 `WECHAT_RADAR_CODEX_MODEL` 指定模型，避免无关插件或全局模型配置影响分析。若提示模型不受支持，请先升级 CLI；使用 Homebrew 安装的版本可执行 `brew upgrade --cask codex`。模型连接成功只验证服务可用，话题结果仍取决于当天是否有足够的讨论内容。
 
 话题雷达页面会明确显示 AI 分析是否启用。未启用时仍可查看已有话题，构建按钮不可用；打开页面不会自动启动分析。启用后选择日期并点击“构建话题”，按语义聚合当天筛选出的讨论，生成标题、摘要及原消息入口。没有合适的讨论时可能返回零个话题。构建接口会返回具体错误，并阻止同一天重复构建。
 

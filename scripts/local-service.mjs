@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdirSync, existsSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs';
+import { mkdirSync, existsSync, readFileSync, writeFileSync, unlinkSync, renameSync, rmSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -36,6 +36,52 @@ async function bootstrap() {
   }
   throw new Error(result.stderr || result.stdout || `launchctl exited ${result.status}`);
 }
+async function rebuild() {
+  const next = join(root, 'node_modules', 'next', 'dist', 'bin', 'next');
+  if (!existsSync(next)) throw new Error('项目依赖尚未安装，无法更新看板。');
+  const build = join(root, '.next');
+  const backup = join(root, '.cache', `radar-build-backup-${Date.now()}`);
+  const hasAgent = existsSync(agent);
+  if (hasAgent && !readFileSync(agent, 'utf8').includes(xml(root))) {
+    throw new Error(`已有其他目录使用 ${agent}，请先确认原服务。`);
+  }
+  if (loaded()) checked(['bootout', target]);
+  let backedUp = false;
+  let compiled = false;
+  try {
+    mkdirSync(dirname(backup), { recursive: true });
+    if (existsSync(build)) {
+      renameSync(build, backup);
+      backedUp = true;
+    }
+    console.log('正在更新看板…');
+    const result = spawnSync(process.execPath, [next, 'build'], {
+      cwd: root,
+      env: { ...process.env, NEXT_TELEMETRY_DISABLED: '1' },
+      stdio: 'inherit',
+    });
+    if (result.error) throw result.error;
+    if (result.status !== 0) throw new Error(`构建失败（${result.status ?? result.signal}）`);
+    compiled = true;
+    if (hasAgent) await bootstrap();
+    console.log('看板更新完成。');
+    if (hasAgent) status();
+    else console.log('运行 node scripts/local-service.mjs install 可安装后台服务。');
+  } catch (error) {
+    if (!compiled && backedUp) {
+      rmSync(build, { recursive: true, force: true });
+      renameSync(backup, build);
+      console.error('构建未完成，已恢复上一次成功的版本。');
+    }
+    if (hasAgent && !loaded()) {
+      try { await bootstrap(); }
+      catch (restartError) { console.error(`服务恢复失败：${restartError.message}`); }
+    }
+    throw error;
+  } finally {
+    if (compiled && backedUp) rmSync(backup, { recursive: true, force: true });
+  }
+}
 function xml(value) {
   return String(value).replace(/[<>&"']/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' })[char]);
 }
@@ -55,7 +101,7 @@ function status() {
 try {
   if (process.platform !== 'darwin') throw new Error('此后台服务脚本仅适用于 macOS。');
   if (command === 'install') {
-    if (!existsSync(join(root, '.next', 'BUILD_ID'))) throw new Error('请先运行 pnpm build。');
+    if (!existsSync(join(root, '.next', 'BUILD_ID'))) throw new Error('请先运行 node scripts/local-service.mjs rebuild。');
     if (existsSync(agent) && !readFileSync(agent, 'utf8').includes(xml(root))) {
       throw new Error(`已有其他目录使用 ${agent}，请先确认原服务。`);
     }
@@ -95,6 +141,8 @@ try {
     if (loaded()) checked(['kickstart', target]);
     else await bootstrap();
     status();
+  } else if (command === 'rebuild') {
+    await rebuild();
   } else if (command === 'restart') {
     checked(['kickstart', '-k', target]);
     status();
@@ -103,7 +151,7 @@ try {
     if (command === 'uninstall' && existsSync(agent)) unlinkSync(agent);
     console.log(command === 'uninstall' ? '已移除后台服务，项目与数据仍保留。' : '已停止服务，下次登录 Mac 会自动启动。');
   } else if (command === 'status') status();
-  else throw new Error('用法: node scripts/local-service.mjs install|start|restart|stop|status|uninstall');
+  else throw new Error('用法: node scripts/local-service.mjs install|start|restart|rebuild|stop|status|uninstall');
 } catch (error) {
   console.error(error.message);
   process.exitCode = 1;

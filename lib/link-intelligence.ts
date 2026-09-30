@@ -306,6 +306,7 @@ function runCodexJson<T>(prompt: string, schema: unknown, timeoutMs = CODEX_TIME
       '-a',
       'never',
       'exec',
+      '--ignore-user-config',
       '--sandbox',
       'read-only',
       '--ephemeral',
@@ -338,7 +339,7 @@ function runCodexJson<T>(prompt: string, schema: unknown, timeoutMs = CODEX_TIME
       clearTimeout(t);
       try {
         if (code !== 0) {
-          reject(new Error(`codex exit ${code}: ${stderr.slice(0, 800)}`));
+          reject(new Error(`codex exit ${code}: ${stderr.trim().slice(-1200)}`));
           return;
         }
         resolve(parseJsonOutput<T>(readFileSync(outPath, 'utf8')));

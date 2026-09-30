@@ -184,6 +184,7 @@ function runCodexJson<T>(prompt: string, timeoutMs = CODEX_TIMEOUT_MS): Promise<
       '-a',
       'never',
       'exec',
+      '--ignore-user-config',
       '--sandbox',
       'read-only',
       '--ephemeral',
@@ -219,7 +220,7 @@ function runCodexJson<T>(prompt: string, timeoutMs = CODEX_TIMEOUT_MS): Promise<
       clearTimeout(t);
       try {
         if (code !== 0) {
-          reject(new Error(`codex exit ${code}: ${stderr.slice(0, 800)}`));
+          reject(new Error(`codex exit ${code}: ${stderr.trim().slice(-1200)}`));
           return;
         }
         const raw = readFileSync(outPath, 'utf8') || stdout;
