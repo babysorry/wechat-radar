@@ -91,18 +91,18 @@ export default function ClassifyPage() {
             </Link>
             <div>
               <div className="report-kicker">Classification</div>
-              <div className="flex items-center gap-2 text-[15px] font-semibold">
+              <div className="flex items-center gap-2 text-title font-semibold">
                 <Sparkles size={16} className="text-[var(--accent)]" />
                 智能分类
               </div>
-              <div className="mt-0.5 text-[11px] text-[var(--text-3)]">
+              <div className="mt-0.5 text-meta text-[var(--text-3)]">
                 {suggestions.length} 个未分组群 · 已建议 {matched} 条
               </div>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <Link href="/categories" className="btn"><Tags size={13} />分类管理</Link>
-            {msg && <span className="text-[12px] text-[var(--text-2)]">{msg}</span>}
+            {msg && <span className="text-body text-[var(--text-2)]">{msg}</span>}
             <button className="btn btn-primary" onClick={apply} disabled={busy || loading || matched === 0}>
               <Check size={13} />
               <span>{busy ? '应用中…' : `应用 ${matched} 条`}</span>
@@ -111,16 +111,16 @@ export default function ClassifyPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
-          <p className="mb-4 text-[12px] text-[var(--text-3)]">根据群名和最近消息的关键词在本机生成建议，选择分类后点击“应用”保存。</p>
-          {error && <div role="alert" className="mb-4 rounded bg-[var(--danger-soft)] p-3 text-[12px] text-[var(--danger)]">{error}<button className="ml-3 underline" onClick={() => void load()} disabled={busy || loading}>重新加载</button></div>}
-          {loading ? <div className="py-20 text-center text-[12px] text-[var(--text-3)]">加载分类建议中…</div> : error ? null : suggestions.length === 0 ? (
-            <div className="py-20 text-center text-[12px] text-[var(--text-3)]">
+          <p className="mb-4 text-body text-[var(--text-3)]">根据群名和最近消息的关键词在本机生成建议，选择分类后点击“应用”保存。</p>
+          {error && <div role="alert" className="mb-4 rounded bg-[var(--danger-soft)] p-3 text-body text-[var(--danger)]">{error}<button className="ml-3 underline" onClick={() => void load()} disabled={busy || loading}>重新加载</button></div>}
+          {loading ? <div className="py-20 text-center text-body text-[var(--text-3)]">加载分类建议中…</div> : error ? null : suggestions.length === 0 ? (
+            <div className="py-20 text-center text-body text-[var(--text-3)]">
               所有群都已分类
             </div>
           ) : (
             <div className="card overflow-x-auto">
-              <table className="w-full text-[13px]">
-                <thead className="border-b border-[var(--border-soft)] text-[11px] uppercase tracking-wider text-[var(--text-3)]">
+              <table className="w-full text-body">
+                <thead className="border-b border-[var(--border-soft)] text-meta uppercase tracking-wider text-[var(--text-3)]">
                   <tr>
                     <th className="px-4 py-2 text-left font-normal">群名</th>
                     <th className="px-4 py-2 text-left font-normal">最近消息</th>
@@ -138,7 +138,7 @@ export default function ClassifyPage() {
                         <div className="truncate text-[var(--text)]">{s.name}</div>
                       </td>
                       <td className="px-4 py-2 max-w-[260px]">
-                        <div className="truncate text-[11px] text-[var(--text-3)]">{s.summary}</div>
+                        <div className="truncate text-meta text-[var(--text-3)]">{s.summary}</div>
                       </td>
                       <td className="px-4 py-2">
                         <select
@@ -149,7 +149,7 @@ export default function ClassifyPage() {
                               [s.chatroom_id]: e.target.value ? Number(e.target.value) : null,
                             }))
                           }
-                          className="control-surface rounded px-2 py-1 text-[12px] text-[var(--text)] outline-none"
+                          className="control-surface rounded px-2 py-1 text-body text-[var(--text)] outline-none"
                         >
                           <option value="">— 跳过 —</option>
                           {groups.map((g) => (
@@ -159,7 +159,7 @@ export default function ClassifyPage() {
                           ))}
                         </select>
                       </td>
-                      <td className="px-4 py-2 text-[11px] text-[var(--text-3)]">{s.reason}</td>
+                      <td className="px-4 py-2 text-meta text-[var(--text-3)]">{s.reason}</td>
                     </tr>
                   ))}
                 </tbody>

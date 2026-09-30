@@ -79,7 +79,7 @@ export default function GlobalSearch() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => query.trim().length >= 2 && setOpen(true)}
-          className="min-w-0 flex-1 bg-transparent text-[12px] outline-none placeholder:text-[var(--text-3)]"
+          className="min-w-0 flex-1 bg-transparent text-body outline-none placeholder:text-[var(--text-3)]"
           placeholder="搜索群、话题、人、关键词"
         />
         {loading && <Loader2 size={12} className="animate-spin text-[var(--text-3)]" />}
@@ -88,7 +88,7 @@ export default function GlobalSearch() {
       {open && query.trim().length >= 2 && (
         <div className="absolute right-0 top-[calc(100%+8px)] z-40 max-h-[520px] w-[420px] overflow-y-auto rounded-lg border border-[var(--border-soft)] bg-[var(--surface)] p-2 shadow-[var(--shadow)]">
           {results.length === 0 && !loading ? (
-            <div className="px-3 py-8 text-center text-[12px] text-[var(--text-3)]">
+            <div className="px-3 py-8 text-center text-body text-[var(--text-3)]">
               没找到匹配结果
             </div>
           ) : (
@@ -107,14 +107,14 @@ export default function GlobalSearch() {
 function SearchItem({ item, onClick }: { item: Result; onClick: () => void }) {
   const inner = (
     <>
-      <span className="mt-0.5 rounded border border-[var(--border-soft)] px-1.5 py-0.5 text-[10px] text-[var(--text-3)]">
+      <span className="mt-0.5 rounded border border-[var(--border-soft)] px-1.5 py-0.5 text-caption text-[var(--text-3)]">
         {TYPE_LABEL[item.type]}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[13px] font-medium text-[var(--text)]">
+        <span className="block truncate text-body font-medium text-[var(--text)]">
           {item.title}
         </span>
-        <span className="mt-0.5 block truncate text-[11px] text-[var(--text-3)]">
+        <span className="mt-0.5 block truncate text-meta text-[var(--text-3)]">
           {item.subtitle}
         </span>
       </span>

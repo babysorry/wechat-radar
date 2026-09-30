@@ -72,18 +72,18 @@ export default function Sidebar() {
   }, []);
 
   return (
-    <aside className="flex h-screen w-[236px] shrink-0 flex-col border-r border-[var(--border-soft)] bg-[var(--sidebar-bg)] backdrop-blur">
+    <aside className="flex h-screen w-[264px] shrink-0 flex-col border-r border-[var(--border-soft)] bg-[var(--sidebar-bg)] backdrop-blur">
       <div className="border-b border-[var(--border-soft)] px-4 py-4">
         <div className="flex items-center justify-between">
           <Link href="/" className="min-w-0">
             <div className="report-kicker">Qiaomu Radar</div>
-            <div className="mt-1 text-[15px] font-semibold tracking-wide text-[var(--text)]">
+            <div className="mt-1 text-title font-semibold tracking-wide text-[var(--text)]">
               微信群聊情报
             </div>
           </Link>
           <ThemeToggle />
         </div>
-        <div className="mt-2 text-[11px] text-[var(--text-3)]">私有看板 · 高信号优先</div>
+        <div className="mt-2 text-meta text-[var(--text-3)]">私有看板 · 高信号优先</div>
       </div>
 
       <nav className="px-2 pb-2 pt-3">
@@ -110,7 +110,7 @@ export default function Sidebar() {
         />
       </nav>
 
-      <div className="px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-3)]">
+      <div className="px-4 pt-2 pb-1 text-caption font-semibold uppercase tracking-[0.14em] text-[var(--text-3)]">
         Groups
       </div>
       <nav className="px-2">
@@ -136,7 +136,7 @@ export default function Sidebar() {
         />
       </nav>
 
-      <div className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-3)]">
+      <div className="px-4 pt-3 pb-1 text-caption font-semibold uppercase tracking-[0.14em] text-[var(--text-3)]">
         Collections
       </div>
       <div className="flex-1 overflow-y-auto px-2 pb-2">
@@ -145,7 +145,7 @@ export default function Sidebar() {
         ))}
       </div>
 
-      <div className="border-t border-[var(--border-soft)] px-4 py-2 text-[11px] text-[var(--text-3)]">
+      <div className="border-t border-[var(--border-soft)] px-4 py-2 text-meta text-[var(--text-3)]">
         {daemon?.running ? (
           <span>
             <span className="inline-block size-2 rounded-full bg-[var(--accent)] mr-1.5 align-middle" />
@@ -180,7 +180,7 @@ function NavItem({
   return (
     <Link
       href={href}
-      className={`group relative flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-[13px] transition-colors ${
+      className={`group relative flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-body transition-colors ${
         active
           ? 'bg-[var(--accent-soft)] text-[var(--text)]'
           : 'text-[var(--text-2)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]'
@@ -192,12 +192,12 @@ function NavItem({
         {label}
       </span>
       {badge && (
-        <span className="signal-chip rounded px-1.5 py-0.5 text-[10px] font-medium">
+        <span className="signal-chip rounded px-1.5 py-0.5 text-caption font-medium">
           {badge}
         </span>
       )}
       {count !== undefined && (
-        <span className="text-[11px] text-[var(--text-3)] tabular-nums">{count}</span>
+        <span className="text-meta text-[var(--text-3)] tabular-nums">{count}</span>
       )}
     </Link>
   );
@@ -207,7 +207,7 @@ function CategoryItem({ category }: { category: Category }) {
   return (
     <Link
       href={`/groups?filter=group&group_id=${category.id}`}
-      className="flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-[13px] text-[var(--text-2)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
+      className="flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-body text-[var(--text-2)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
     >
       <span className="flex items-center gap-2 truncate">
         <span
@@ -219,7 +219,7 @@ function CategoryItem({ category }: { category: Category }) {
           {category.name}
         </span>
       </span>
-      <span className="text-[11px] text-[var(--text-3)] tabular-nums">
+      <span className="text-meta text-[var(--text-3)] tabular-nums">
         {category.member_count ?? 0}
       </span>
     </Link>

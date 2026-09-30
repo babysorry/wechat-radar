@@ -70,12 +70,12 @@ function Card({
   const content = (
     <>
       <div className={`absolute inset-x-0 top-0 h-px ${accent === 'warn' ? 'bg-[var(--warn)]' : 'bg-[var(--accent)]'} opacity-60`} />
-      <div className="flex items-center justify-between gap-2 text-[12px] text-[var(--text-2)]">
+      <div className="flex items-center justify-between gap-2 text-body text-[var(--text-2)]">
         <span className="flex items-center gap-1.5">
           {icon}
           <span>{label}</span>
         </span>
-        <span className="text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">Metric</span>
+        <span className="text-caption uppercase tracking-[0.14em] text-[var(--text-3)]">Metric</span>
       </div>
       <div
         className={`mt-3 text-[34px] font-semibold leading-none tabular-nums ${
@@ -84,7 +84,7 @@ function Card({
       >
         {value}
       </div>
-      <div className="mt-2 text-[11px] text-[var(--text-3)]">{sub}</div>
+      <div className="mt-2 text-meta text-[var(--text-3)]">{sub}</div>
     </>
   );
 

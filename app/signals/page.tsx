@@ -79,11 +79,11 @@ export default function SignalsPage() {
         <div className="flex items-center justify-between border-b border-[var(--border-soft)] bg-[var(--chrome-bg)] px-6 py-3 backdrop-blur">
           <div>
             <div className="report-kicker">Live Signals</div>
-            <div className="flex items-center gap-2 text-[15px] font-semibold">
+            <div className="flex items-center gap-2 text-title font-semibold">
               <Activity size={16} className="text-[var(--accent)]" />
               信号流 · 实时
             </div>
-            <div className="mt-0.5 text-[11px] text-[var(--text-3)]">
+            <div className="mt-0.5 text-meta text-[var(--text-3)]">
               {err
                 ? `错误：${err}`
                 : lastTick
@@ -102,7 +102,7 @@ export default function SignalsPage() {
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {items.length === 0 ? (
-            <div className="py-20 text-center text-[12px] text-[var(--text-3)]">
+            <div className="py-20 text-center text-body text-[var(--text-3)]">
               等待新消息（每 5 秒拉取一次）…
             </div>
           ) : (
@@ -120,16 +120,16 @@ export default function SignalsPage() {
 
 function Row({ m }: { m: StreamMessage }) {
   return (
-    <div className="card grid grid-cols-[140px_1fr_120px] gap-3 px-4 py-3 text-[13px]">
+    <div className="card grid grid-cols-[140px_1fr_120px] gap-3 px-4 py-3 text-body">
       <div className="truncate text-[var(--text-2)]">
         <div className="truncate font-medium text-[var(--text)]">{m.chat_name}</div>
-        <div className="truncate text-[11px] text-[var(--text-3)]">{m.sender}</div>
+        <div className="truncate text-meta text-[var(--text-3)]">{m.sender}</div>
       </div>
       <div className="min-w-0">
         <div className="truncate text-[var(--text)]">{m.content}</div>
-        <div className="mt-0.5 text-[11px] text-[var(--text-3)]">类型：{m.type}</div>
+        <div className="mt-0.5 text-meta text-[var(--text-3)]">类型：{m.type}</div>
       </div>
-      <div className="text-right text-[11px] text-[var(--text-3)] tabular-nums">{m.time}</div>
+      <div className="text-right text-meta text-[var(--text-3)] tabular-nums">{m.time}</div>
     </div>
   );
 }

@@ -133,7 +133,7 @@ export default function Page() {
 
   if (!setupChecked) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[var(--bg)] text-[12px] text-[var(--text-3)]">
+      <div className="flex h-screen items-center justify-center bg-[var(--bg)] text-body text-[var(--text-3)]">
         加载配置…
       </div>
     );

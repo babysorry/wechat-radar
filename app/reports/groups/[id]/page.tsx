@@ -79,8 +79,8 @@ export default function GroupDailyReportPage({
             </Link>
             <div className="min-w-0">
               <div className="report-kicker">Group Daily Report</div>
-              <h1 className="truncate text-[16px] font-semibold">{title}</h1>
-              <div className="mt-0.5 text-[11px] text-[var(--text-3)]">
+              <h1 className="truncate text-title font-semibold">{title}</h1>
+              <div className="mt-0.5 text-meta text-[var(--text-3)]">
                 {date} · {loading ? '加载中…' : `${data?.stats?.total ?? 0} 条消息`} · 日报地址
               </div>
             </div>
@@ -103,11 +103,11 @@ export default function GroupDailyReportPage({
 
         <div className="flex-1 overflow-y-auto px-6 py-5">
           <section className="card p-5">
-            <div className="flex items-center gap-1.5 text-[14px] font-semibold">
+            <div className="flex items-center gap-1.5 text-section font-semibold">
               <FileText size={15} className="text-[var(--accent)]" />
               日报摘要
             </div>
-            <p className="mt-3 text-[13px] leading-6 text-[var(--text-2)]">
+            <p className="mt-3 text-body leading-6 text-[var(--text-2)]">
               {loading
                 ? '正在生成日报视图…'
                 : `今天这个群共产生 ${data?.stats?.total ?? 0} 条消息，按摘要策略提炼为核心主题、证据引用、资源链接和可跟进项。`}
@@ -117,36 +117,36 @@ export default function GroupDailyReportPage({
           <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[1.25fr_0.75fr]">
             <section className="card p-5">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-[14px] font-semibold">
+                <div className="flex items-center gap-1.5 text-section font-semibold">
                   <MessageSquare size={15} className="text-[var(--accent)]" />
                   核心主题
                 </div>
-                <div className="text-[11px] text-[var(--text-3)]">{report.topics.length} 个</div>
+                <div className="text-meta text-[var(--text-3)]">{report.topics.length} 个</div>
               </div>
               <div className="mt-3 space-y-3">
                 {report.topics.length === 0 ? (
-                  <div className="py-10 text-center text-[12px] text-[var(--text-3)]">暂无可聚合主题</div>
+                  <div className="py-10 text-center text-body text-[var(--text-3)]">暂无可聚合主题</div>
                 ) : (
                   report.topics.map((topic, i) => (
                     <article key={topic.title} className="rounded-md border border-[var(--border-soft)] bg-[var(--surface-2)] px-3 py-3">
                       <div className="flex items-start justify-between gap-3">
-                        <h2 className="report-title text-[16px] font-semibold text-[var(--text)]">
+                        <h2 className="report-title text-title font-semibold text-[var(--text)]">
                           {i + 1}. {topic.title}
                         </h2>
-                        <span className="shrink-0 rounded bg-[var(--accent-soft)] px-1.5 py-0.5 text-[10px] text-[var(--accent)]">
+                        <span className="shrink-0 rounded bg-[var(--accent-soft)] px-1.5 py-0.5 text-caption text-[var(--accent)]">
                           {topic.count} 条
                         </span>
                       </div>
-                      <div className="mt-2 text-[12px] leading-5 text-[var(--text-2)]">
+                      <div className="mt-2 text-body leading-5 text-[var(--text-2)]">
                         <span className="font-medium text-[var(--text)]">聊了什么：</span>
                         {topic.what}
                       </div>
-                      <div className="mt-1 text-[12px] leading-5 text-[var(--text-2)]">
+                      <div className="mt-1 text-body leading-5 text-[var(--text-2)]">
                         <span className="font-medium text-[var(--text)]">为什么重要：</span>
                         {topic.why}
                       </div>
                       {topic.quote && (
-                        <blockquote className="mt-2 border-l-2 border-[var(--accent)] pl-3 text-[11px] leading-5 text-[var(--text-3)]">
+                        <blockquote className="mt-2 border-l-2 border-[var(--accent)] pl-3 text-meta leading-5 text-[var(--text-3)]">
                           {topic.quote.sender}：「{topic.quote.text}」
                         </blockquote>
                       )}
@@ -158,18 +158,18 @@ export default function GroupDailyReportPage({
 
             <div className="space-y-4">
               <section className="card p-5">
-                <div className="flex items-center gap-1.5 text-[14px] font-semibold">
+                <div className="flex items-center gap-1.5 text-section font-semibold">
                   <Link2 size={15} className="text-[var(--accent)]" />
                   工具/文章/链接
                 </div>
                 <div className="mt-3 space-y-2">
                   {report.links.length === 0 ? (
-                    <div className="py-6 text-center text-[12px] text-[var(--text-3)]">暂无链接</div>
+                    <div className="py-6 text-center text-body text-[var(--text-3)]">暂无链接</div>
                   ) : (
                     report.links.slice(0, 10).map((link) => (
                       <a key={link.key} href={link.url} target="_blank" rel="noreferrer" className="block rounded-md px-2 py-2 hover:bg-[var(--surface-2)]">
-                        <div className="line-clamp-2 text-[12px] font-medium text-[var(--text)]">{link.title}</div>
-                        <div className="mt-1 flex min-w-0 items-center gap-2 text-[10px] text-[var(--text-3)]">
+                        <div className="line-clamp-2 text-body font-medium text-[var(--text)]">{link.title}</div>
+                        <div className="mt-1 flex min-w-0 items-center gap-2 text-caption text-[var(--text-3)]">
                           <span className="truncate">{link.url}</span>
                           {(link.count > 1 || link.urlCount > 1) && (
                             <span className="shrink-0 rounded bg-[var(--accent-soft)] px-1.5 py-0.5 text-[var(--accent)]">
@@ -184,16 +184,16 @@ export default function GroupDailyReportPage({
               </section>
 
               <section className="card p-5">
-                <div className="flex items-center gap-1.5 text-[14px] font-semibold">
+                <div className="flex items-center gap-1.5 text-section font-semibold">
                   <FileText size={15} className="text-[var(--warn)]" />
                   可跟进
                 </div>
                 <div className="mt-3 space-y-2">
                   {report.followups.length === 0 ? (
-                    <div className="py-6 text-center text-[12px] text-[var(--text-3)]">暂无明确问题</div>
+                    <div className="py-6 text-center text-body text-[var(--text-3)]">暂无明确问题</div>
                   ) : (
                     report.followups.slice(0, 8).map((m) => (
-                      <div key={m.local_id} className="rounded-md px-2 py-2 text-[12px] leading-5 text-[var(--text-2)] hover:bg-[var(--surface-2)]">
+                      <div key={m.local_id} className="rounded-md px-2 py-2 text-body leading-5 text-[var(--text-2)] hover:bg-[var(--surface-2)]">
                         <span className="font-medium text-[var(--text)]">{m.sender}：</span>
                         {cleanMessage(m.content)}
                       </div>
@@ -203,13 +203,13 @@ export default function GroupDailyReportPage({
               </section>
 
               <section className="card p-5">
-                <div className="flex items-center gap-1.5 text-[14px] font-semibold">
+                <div className="flex items-center gap-1.5 text-section font-semibold">
                   <Trophy size={15} className="text-[var(--warn)]" />
                   Top 发言人
                 </div>
                 <div className="mt-3 space-y-2">
                   {(data?.stats?.top_senders ?? []).slice(0, 8).map((sender, i) => (
-                    <div key={`${sender.sender}:${i}`} className="flex items-center justify-between gap-3 text-[13px]">
+                    <div key={`${sender.sender}:${i}`} className="flex items-center justify-between gap-3 text-body">
                       <span className="truncate text-[var(--text-2)]">{i + 1}. {sender.sender}</span>
                       <span className="tabular-nums text-[var(--text)]">{sender.count}</span>
                     </div>

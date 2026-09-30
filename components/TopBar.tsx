@@ -36,8 +36,8 @@ export default function TopBar({
     <div className="flex items-center justify-between gap-4 border-b border-[var(--border-soft)] bg-[var(--chrome-bg)] px-6 py-3 backdrop-blur">
       <div>
         <div className="report-kicker">Daily Intelligence</div>
-        <div className="mt-1 text-[16px] font-semibold tracking-wide">驾驶舱 · 情报看板</div>
-        <div className="mt-0.5 text-[11px] text-[var(--text-3)]">
+        <div className="mt-1 text-title font-semibold tracking-wide">驾驶舱 · 情报看板</div>
+        <div className="mt-0.5 text-meta text-[var(--text-3)]">
           {rescanInfo ?? '尚未扫描，点击「重扫」加载数据'}
         </div>
       </div>
@@ -50,13 +50,13 @@ export default function TopBar({
             type="date"
             value={date}
             onChange={(e) => onDateChange(e.target.value)}
-            className="theme-date-input min-w-[128px] bg-transparent text-[12px] outline-none"
+            className="theme-date-input min-w-[128px] bg-transparent text-body outline-none"
             title="按日期查看驾驶舱"
           />
         </div>
 
         <SegGroup>
-          <span className="border-r border-[var(--border-soft)] px-2 py-1 text-[11px] text-[var(--text-3)]">
+          <span className="border-r border-[var(--border-soft)] px-2 py-1 text-meta text-[var(--text-3)]">
             范围
           </span>
           {RANGES.map((r) => (
@@ -110,7 +110,7 @@ function SegBtn({
 }) {
   return (
     <button
-      className={`px-2.5 py-1 text-[12px] transition-colors ${
+      className={`px-2.5 py-1 text-body transition-colors ${
         active
           ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
           : 'text-[var(--text-2)] hover:text-[var(--text)]'

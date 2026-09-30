@@ -67,7 +67,7 @@ export default function NewGroupModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
-          <div className="text-[15px] font-semibold">新建分组</div>
+          <div className="text-title font-semibold">新建分组</div>
           <button onClick={onClose} className="text-[var(--text-3)] hover:text-[var(--text)]">
             <X size={16} />
           </button>
@@ -75,27 +75,27 @@ export default function NewGroupModal({
 
         <div className="mt-4 space-y-3">
           <div>
-            <label className="text-[11px] text-[var(--text-3)]">分组名</label>
+            <label className="text-meta text-[var(--text-3)]">分组名</label>
             <input
               autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="如：AI · 编程"
-              className="control-surface mt-1 w-full rounded-md px-3 py-2 text-[13px] text-[var(--text)] outline-none focus:border-[var(--accent)]"
+              className="control-surface mt-1 w-full rounded-md px-3 py-2 text-body text-[var(--text)] outline-none focus:border-[var(--accent)]"
             />
           </div>
           <div>
-            <label className="text-[11px] text-[var(--text-3)]">Emoji（可选）</label>
+            <label className="text-meta text-[var(--text-3)]">Emoji（可选）</label>
             <input
               value={emoji}
               onChange={(e) => setEmoji(e.target.value)}
               placeholder="🤖"
               maxLength={4}
-              className="control-surface mt-1 w-full rounded-md px-3 py-2 text-[13px] text-[var(--text)] outline-none focus:border-[var(--accent)]"
+              className="control-surface mt-1 w-full rounded-md px-3 py-2 text-body text-[var(--text)] outline-none focus:border-[var(--accent)]"
             />
           </div>
           <div>
-            <label className="text-[11px] text-[var(--text-3)]">颜色</label>
+            <label className="text-meta text-[var(--text-3)]">颜色</label>
             <div className="mt-1 flex flex-wrap gap-2">
               {COLORS.map((c) => (
                 <button
@@ -109,7 +109,7 @@ export default function NewGroupModal({
               ))}
             </div>
           </div>
-          {err && <div className="text-[12px] text-[var(--danger)]">{err}</div>}
+          {err && <div className="text-body text-[var(--danger)]">{err}</div>}
         </div>
 
         <div className="mt-5 flex justify-end gap-2">

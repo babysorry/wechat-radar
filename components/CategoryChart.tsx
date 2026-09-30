@@ -41,33 +41,33 @@ export default function CategoryChart({ categories }: { categories: CategoryStat
     const baseTooltip = {
       backgroundColor: '#101812',
       borderColor: '#27342c',
-      textStyle: { color: '#edf1e8' },
+      textStyle: { color: '#edf1e8', fontSize: 16 },
     } as const;
 
     if (mode === 'bar') {
       return {
-        grid: { top: 8, right: 24, bottom: 8, left: 80 },
+        grid: { top: 8, right: 24, bottom: 8, left: 8, containLabel: true },
         tooltip: { trigger: 'item', ...baseTooltip },
         xAxis: {
           type: 'value',
           axisLine: { show: false },
           axisTick: { show: false },
           splitLine: { lineStyle: { color: 'rgba(154,174,158,0.12)' } },
-          axisLabel: { color: '#737f75', fontSize: 10 },
+          axisLabel: { color: '#737f75', fontSize: 14 },
         },
         yAxis: {
           type: 'category',
           data: data.map((d) => d.name),
           axisLine: { show: false },
           axisTick: { show: false },
-          axisLabel: { color: '#aab4aa', fontSize: 11 },
+          axisLabel: { color: '#aab4aa', fontSize: 14 },
         },
         series: [
           {
             type: 'bar',
             data,
             barWidth: 12,
-            label: { show: true, position: 'right', color: '#aab4aa', fontSize: 10 },
+            label: { show: true, position: 'right', color: '#aab4aa', fontSize: 14 },
           },
         ],
       };
@@ -81,7 +81,7 @@ export default function CategoryChart({ categories }: { categories: CategoryStat
           orient: 'vertical',
           right: 8,
           top: 'middle',
-          textStyle: { color: '#aab4aa', fontSize: 10 },
+          textStyle: { color: '#aab4aa', fontSize: 14 },
         },
         series: [
           {
@@ -105,7 +105,7 @@ export default function CategoryChart({ categories }: { categories: CategoryStat
           name: d.name,
           max: Math.max(...data.map((x) => x.value), 1),
         })),
-        axisName: { color: '#aab4aa', fontSize: 10 },
+        axisName: { color: '#aab4aa', fontSize: 14 },
         splitLine: { lineStyle: { color: '#27342c' } },
         splitArea: { areaStyle: { color: ['rgba(16,24,18,0.42)'] } },
       },
@@ -128,16 +128,16 @@ export default function CategoryChart({ categories }: { categories: CategoryStat
   return (
     <div className="card p-5">
       <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-1.5 text-[14px] font-semibold">
+        <div className="flex items-center gap-1.5 text-section font-semibold">
           <PieChart size={14} className="text-[var(--accent)]" />
           分类构成
         </div>
-        <div className="text-[11px] text-[var(--text-3)]">
+        <div className="text-meta text-[var(--text-3)]">
           {categories.length} 类 · {totalGroups} 群
         </div>
       </div>
 
-      <div className="mb-2 flex gap-1 text-[11px]">
+      <div className="mb-2 flex gap-1 text-meta">
         {MODES.map((m) => (
           <button
             key={m.key}
@@ -156,7 +156,7 @@ export default function CategoryChart({ categories }: { categories: CategoryStat
       {categories.length > 0 ? (
         <ReactECharts option={option} style={{ height: 280 }} />
       ) : (
-        <div className="flex h-[280px] items-center justify-center text-[12px] text-[var(--text-3)]">
+        <div className="flex h-[280px] items-center justify-center text-body text-[var(--text-3)]">
           暂无分类数据
         </div>
       )}

@@ -61,7 +61,7 @@ export default function SetupPage() {
       <div className="mx-auto max-w-4xl">
         <div className="report-kicker">WeChat Radar Setup</div>
         <h1 className="mt-2 text-[28px] font-semibold">配置微信雷达</h1>
-        <p className="mt-2 text-[13px] leading-relaxed text-[var(--text-2)]">
+        <p className="mt-2 text-body leading-relaxed text-[var(--text-2)]">
           首次运行需要确认本地环境、填写你的微信名，并选择是否使用示例数据。所有数据默认保存在本机。
         </p>
 
@@ -75,27 +75,27 @@ export default function SetupPage() {
 
           <section className="card p-5">
             <SectionTitle icon={<UserRound size={15} />} title="你的微信名" />
-            <label className="mt-3 block text-[12px] text-[var(--text-3)]">多个名称用英文逗号分隔</label>
+            <label className="mt-3 block text-body text-[var(--text-3)]">多个名称用英文逗号分隔</label>
             <input
               value={names}
               onChange={(e) => setNames(e.target.value)}
               placeholder="张三, San Zhang, zhangsan"
-              className="control-surface mt-2 w-full rounded-md px-3 py-2 text-[13px] outline-none"
+              className="control-surface mt-2 w-full rounded-md px-3 py-2 text-body outline-none"
             />
-            <p className="mt-2 text-[11px] text-[var(--text-3)]">用于识别 @我的、自己相关讨论和提醒。</p>
+            <p className="mt-2 text-meta text-[var(--text-3)]">用于识别 @我的、自己相关讨论和提醒。</p>
           </section>
 
           <section className="card p-5">
             <SectionTitle icon={<Database size={15} />} title="数据模式" />
-            <label className="mt-4 flex items-center gap-2 text-[13px]">
+            <label className="mt-4 flex items-center gap-2 text-body">
               <input type="checkbox" checked={demoMode} onChange={(e) => setDemoMode(e.target.checked)} />
               使用示例数据体验
             </label>
-            <label className="mt-4 block text-[12px] text-[var(--text-3)]">首次同步天数</label>
+            <label className="mt-4 block text-body text-[var(--text-3)]">首次同步天数</label>
             <select
               value={defaultSyncDays}
               onChange={(e) => setDefaultSyncDays(Number(e.target.value))}
-              className="control-surface mt-2 rounded-md px-3 py-2 text-[13px] outline-none"
+              className="control-surface mt-2 rounded-md px-3 py-2 text-body outline-none"
             >
               <option value={1}>最近 1 天</option>
               <option value={7}>最近 7 天</option>
@@ -106,14 +106,14 @@ export default function SetupPage() {
 
           <section className="card p-5">
             <SectionTitle icon={<ShieldCheck size={15} />} title="隐私确认" />
-            <label className="mt-4 flex items-start gap-2 text-[13px] leading-relaxed">
+            <label className="mt-4 flex items-start gap-2 text-body leading-relaxed">
               <input className="mt-1" type="checkbox" checked={privacyConfirmed} onChange={(e) => setPrivacyConfirmed(e.target.checked)} />
               <span>我理解聊天数据会存储在本地 SQLite 中，不会自动上传；我会自行确认数据读取和处理符合相关规则。</span>
             </label>
           </section>
         </div>
 
-        {error && <div className="mt-4 text-[13px] text-[var(--danger)]">{error}</div>}
+        {error && <div className="mt-4 text-body text-[var(--danger)]">{error}</div>}
 
         <div className="mt-6 flex justify-end gap-2">
           <button className="btn" onClick={() => window.location.href = '/'}>稍后再说</button>
@@ -127,14 +127,14 @@ export default function SetupPage() {
 }
 
 function SectionTitle({ icon, title }: { icon: React.ReactNode; title: string }) {
-  return <div className="flex items-center gap-1.5 text-[14px] font-semibold text-[var(--text)]">{icon}{title}</div>;
+  return <div className="flex items-center gap-1.5 text-section font-semibold text-[var(--text)]">{icon}{title}</div>;
 }
 
 function CheckRow({ label, ok, detail }: { label: string; ok: boolean; detail: string }) {
   return (
-    <div className="mt-3 flex items-center justify-between gap-3 text-[13px]">
+    <div className="mt-3 flex items-center justify-between gap-3 text-body">
       <span className="text-[var(--text-2)]">{label}</span>
-      <span className="flex min-w-0 items-center gap-1.5 text-right text-[12px] text-[var(--text-3)]">
+      <span className="flex min-w-0 items-center gap-1.5 text-right text-body text-[var(--text-3)]">
         <CheckCircle2 size={13} className={ok ? 'text-[var(--accent)]' : 'text-[var(--text-3)]'} />
         <span className="truncate">{detail}</span>
       </span>

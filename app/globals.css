@@ -65,6 +65,18 @@
   --color-danger: var(--danger);
   --font-sans: ui-sans-serif, system-ui, -apple-system, "PingFang SC",
     "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.5;
+  --text-meta: 0.875rem;
+  --text-meta--line-height: 1.5;
+  --text-body: 1rem;
+  --text-body--line-height: 1.6;
+  --text-section: 1.125rem;
+  --text-section--line-height: 1.5;
+  --text-title: 1.25rem;
+  --text-title--line-height: 1.4;
+  --text-heading: 1.5rem;
+  --text-heading--line-height: 1.4;
 }
 
 * {
@@ -73,6 +85,8 @@
 
 html,
 body {
+  font-size: var(--text-body);
+  line-height: 1.6;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
@@ -152,7 +166,8 @@ textarea::placeholder {
   border: 1px solid var(--border-soft);
   background: color-mix(in srgb, var(--control-bg) 86%, var(--surface));
   color: var(--text);
-  font-size: 13px;
+  font-size: var(--text-body);
+  line-height: 1.5;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s, color 0.15s, opacity 0.15s;
 }
@@ -201,7 +216,7 @@ textarea::placeholder {
 
 .report-kicker {
   color: var(--accent);
-  font-size: 10px;
+  font-size: var(--text-caption);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;

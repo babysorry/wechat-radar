@@ -34,7 +34,7 @@ export default function TrendChart({
         formatter: (params: unknown) => {
           const arr = params as Array<{ name: string; value: number }>;
           const p = arr[0];
-          return `<div style="font-size:12px"><div style="color:#aab4aa">${p.name}</div><div style="color:#7dd3a8;font-weight:600;margin-top:2px">消息数：${p.value} 条</div></div>`;
+          return `<div style="font-size:16px"><div style="color:#aab4aa">${p.name}</div><div style="color:#7dd3a8;font-weight:600;margin-top:2px">消息数：${p.value} 条</div></div>`;
         },
       },
       xAxis: {
@@ -42,12 +42,12 @@ export default function TrendChart({
         data: data.map((d) => d.date.slice(5)),
         axisLine: { lineStyle: { color: '#27342c' } },
         axisTick: { show: false },
-        axisLabel: { color: '#737f75', fontSize: 11 },
+        axisLabel: { color: '#737f75', fontSize: 14 },
       },
       yAxis: {
         type: 'value',
         splitLine: { lineStyle: { color: 'rgba(154,174,158,0.12)' } },
-        axisLabel: { color: '#737f75', fontSize: 11 },
+        axisLabel: { color: '#737f75', fontSize: 14 },
       },
       series: [
         {
@@ -80,16 +80,16 @@ export default function TrendChart({
   return (
     <div className="card p-5">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5 text-[14px] font-semibold">
+        <div className="flex items-center gap-1.5 text-section font-semibold">
           <TrendingUp size={14} className="text-[var(--accent)]" />
           消息走势
         </div>
-        <div className="text-[11px] text-[var(--text-3)]">
+        <div className="text-meta text-[var(--text-3)]">
           过去 {data.length} 天 · {total.toLocaleString()} 条
         </div>
       </div>
 
-      <div className="mt-2 flex gap-6 text-[11px] text-[var(--text-3)]">
+      <div className="mt-2 flex gap-6 text-meta text-[var(--text-3)]">
         <span>
           峰值 <span className="text-[var(--text)]">{peak.count} 条/天</span>
           {peak.date && <span className="ml-1 text-[var(--text-3)]">· {peak.date}</span>}
@@ -106,7 +106,7 @@ export default function TrendChart({
         {data.length > 0 ? (
           <ReactECharts option={option} style={{ height: 280 }} />
         ) : (
-          <div className="flex h-[280px] items-center justify-center text-[12px] text-[var(--text-3)]">
+          <div className="flex h-[280px] items-center justify-center text-body text-[var(--text-3)]">
             暂无数据 · 点击右上「重扫」加载
           </div>
         )}

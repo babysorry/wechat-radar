@@ -100,11 +100,11 @@ export default function LinksPage() {
         <div className="flex items-center justify-between border-b border-[var(--border-soft)] bg-[var(--chrome-bg)] px-6 py-3 backdrop-blur">
           <div>
             <div className="report-kicker">Link Intelligence</div>
-            <div className="flex items-center gap-2 text-[15px] font-semibold">
+            <div className="flex items-center gap-2 text-title font-semibold">
               <Newspaper size={16} className="text-[var(--accent)]" />
               链接情报 · 文章与工具
             </div>
-            <div className="mt-0.5 text-[11px] text-[var(--text-3)]">
+            <div className="mt-0.5 text-meta text-[var(--text-3)]">
               {loading
                 ? `${date} · 加载中…`
                 : `${date} · ${links.articles.length} 篇文章 · ${links.tools.length} 个工具/资源`}
@@ -117,7 +117,7 @@ export default function LinksPage() {
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="theme-date-input bg-transparent text-[12px] outline-none"
+                className="theme-date-input bg-transparent text-body outline-none"
               />
             </div>
             <button
@@ -169,30 +169,30 @@ function RawWechatPanel({
   return (
     <section className="card flex min-h-0 min-w-0 flex-col">
       <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-3 py-2">
-        <div className="flex items-center gap-2 text-[12px] font-semibold">
+        <div className="flex items-center gap-2 text-body font-semibold">
           <ExternalLink size={14} className="text-[var(--accent)]" />
           <span>微信文章链接</span>
         </div>
-        <div className="text-[10px] text-[var(--text-3)]">{loading ? '加载中' : `${items.length} 条`}</div>
+        <div className="text-caption text-[var(--text-3)]">{loading ? '加载中' : `${items.length} 条`}</div>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
         {loading ? (
-          <div className="py-16 text-center text-[11px] text-[var(--text-3)]">加载中…</div>
+          <div className="py-16 text-center text-meta text-[var(--text-3)]">加载中…</div>
         ) : items.length === 0 ? (
-          <div className="py-16 text-center text-[11px] text-[var(--text-3)]">当天没有解析到微信文章链接</div>
+          <div className="py-16 text-center text-meta text-[var(--text-3)]">当天没有解析到微信文章链接</div>
         ) : (
           <div className="space-y-1.5">
             {items.map((item) => (
               <div key={`${item.chatroom_id}:${item.local_id}:${item.canonical_url}`} className="rounded-md border border-transparent px-2 py-2 hover:border-[var(--border-soft)] hover:bg-[var(--surface-2)]">
                 <a href={item.url} target="_blank" rel="noreferrer" className="group block min-w-0" title={item.url}>
-                  <div className="line-clamp-2 text-[12px] font-medium leading-snug text-[var(--text)] group-hover:text-[var(--accent)]">
+                  <div className="line-clamp-2 text-body font-medium leading-snug text-[var(--text)] group-hover:text-[var(--accent)]">
                     {item.title || item.domain || item.raw_kind}
                   </div>
-                  <div className="mt-1 break-all text-[10px] leading-snug text-[var(--text-3)]">
+                  <div className="mt-1 break-all text-caption leading-snug text-[var(--text-3)]">
                     {item.url}
                   </div>
                 </a>
-                <div className="mt-1 flex items-center justify-between gap-2 text-[10px] text-[var(--text-3)]">
+                <div className="mt-1 flex items-center justify-between gap-2 text-caption text-[var(--text-3)]">
                   <Link
                     href={`/groups/${encodeURIComponent(item.chatroom_id)}?date=${date}`}
                     className="min-w-0 truncate text-[var(--text-2)] hover:text-[var(--accent)]"
@@ -230,17 +230,17 @@ function LinkInsightPanel({
   return (
     <section className="card flex min-h-0 min-w-0 flex-col">
       <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-3 py-2">
-        <div className="flex items-center gap-2 text-[12px] font-semibold">
+        <div className="flex items-center gap-2 text-body font-semibold">
           {icon}
           <span>{title}</span>
         </div>
-        <div className="text-[10px] text-[var(--text-3)]">{loading ? '加载中' : `${items.length} 条`}</div>
+        <div className="text-caption text-[var(--text-3)]">{loading ? '加载中' : `${items.length} 条`}</div>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
         {loading ? (
-          <div className="py-16 text-center text-[11px] text-[var(--text-3)]">加载中…</div>
+          <div className="py-16 text-center text-meta text-[var(--text-3)]">加载中…</div>
         ) : items.length === 0 ? (
-          <div className="py-16 text-center text-[11px] text-[var(--text-3)]">{empty}</div>
+          <div className="py-16 text-center text-meta text-[var(--text-3)]">{empty}</div>
         ) : (
           <div className="space-y-1.5">
             {items.map((item) => (
@@ -265,17 +265,17 @@ function LinkInsightRow({ item, date }: { item: LinkInsight; date: string }) {
         title={item.title}
       >
         <span className="min-w-0">
-          <span className="line-clamp-2 text-[12px] font-medium leading-snug text-[var(--text)] group-hover:text-[var(--accent)]">
+          <span className="line-clamp-2 text-body font-medium leading-snug text-[var(--text)] group-hover:text-[var(--accent)]">
             {item.title}
           </span>
-          <span className="mt-1 flex min-w-0 items-center gap-2 text-[10px] text-[var(--text-3)]">
+          <span className="mt-1 flex min-w-0 items-center gap-2 text-caption text-[var(--text-3)]">
             <span className={sourceClass(first?.source)}>{sourceLabel(first?.source)}</span>
             <span className="truncate">{item.domain}</span>
           </span>
         </span>
         <ExternalLink size={12} className="mt-0.5 shrink-0 text-[var(--text-3)] group-hover:text-[var(--accent)]" />
       </a>
-      <div className="mt-1 flex items-center justify-between gap-2 text-[10px] text-[var(--text-3)]">
+      <div className="mt-1 flex items-center justify-between gap-2 text-caption text-[var(--text-3)]">
         <Link
           href={`/groups/${encodeURIComponent(first.chatroom_id)}?date=${date}`}
           className="min-w-0 truncate text-[var(--text-2)] hover:text-[var(--accent)]"
@@ -289,7 +289,7 @@ function LinkInsightRow({ item, date }: { item: LinkInsight; date: string }) {
         </span>
       </div>
       {first.snippet && (
-        <div className="mt-1 line-clamp-1 text-[10px] text-[var(--text-3)]">{first.snippet}</div>
+        <div className="mt-1 line-clamp-1 text-caption text-[var(--text-3)]">{first.snippet}</div>
       )}
     </div>
   );

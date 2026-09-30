@@ -14,17 +14,17 @@ export default function ActiveGroupsList({ groups, date }: { groups: ActiveGroup
   return (
     <div className="card p-5">
       <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-1.5 text-[14px] font-semibold">
+        <div className="flex items-center gap-1.5 text-section font-semibold">
           <Flame size={14} className="text-[var(--warn)]" />
           智能活跃群
         </div>
-        <div className="text-[11px] text-[var(--text-3)]">
+        <div className="text-meta text-[var(--text-3)]">
           去噪后 {groups.length} 个 · 前 10 个有日报入口
         </div>
       </div>
 
       {groups.length === 0 ? (
-        <div className="py-10 text-center text-[12px] text-[var(--text-3)]">
+        <div className="py-10 text-center text-body text-[var(--text-3)]">
           暂无数据 · 点击「重扫」加载
         </div>
       ) : (
@@ -65,20 +65,20 @@ function Row({
         className="grid min-w-0 grid-cols-[24px_36px_1fr_88px] items-center gap-3"
         title="查看群详情"
       >
-        <span className="rounded bg-[var(--surface-2)] py-0.5 text-center text-[10px] tabular-nums text-[var(--text-3)]">
+        <span className="rounded bg-[var(--surface-2)] py-0.5 text-center text-caption tabular-nums text-[var(--text-3)]">
           {rank}
         </span>
-        <div className="flex h-8 w-8 items-center justify-center rounded-md border border-[var(--border-soft)] bg-[var(--surface-2)] text-[11px] text-[var(--text-2)]">
+        <div className="flex h-8 w-8 items-center justify-center rounded-md border border-[var(--border-soft)] bg-[var(--surface-2)] text-meta text-[var(--text-2)]">
           {initial}
         </div>
         <div className="min-w-0">
-          <div className="truncate text-[13px] text-[var(--text)]">{group.name}</div>
+          <div className="truncate text-body text-[var(--text)]">{group.name}</div>
           {senders && (
-            <div className="truncate text-[11px] text-[var(--text-3)]">{senders}</div>
+            <div className="truncate text-meta text-[var(--text-3)]">{senders}</div>
           )}
         </div>
         <div className="text-right">
-          <div className="text-[14px] font-semibold tabular-nums text-[var(--text)]">
+          <div className="text-section font-semibold tabular-nums text-[var(--text)]">
             {group.total.toLocaleString()}
           </div>
           <div className="mt-1 h-1 overflow-hidden rounded-full bg-[var(--surface-2)]">
@@ -92,7 +92,7 @@ function Row({
       {rank <= 10 && date ? (
         <Link
           href={reportHref}
-          className="inline-flex h-7 items-center gap-1 rounded border border-[var(--border-soft)] bg-[var(--accent-soft)] px-2 text-[11px] font-medium text-[var(--accent)] transition-colors hover:border-[var(--accent)]"
+          className="inline-flex h-7 items-center gap-1 rounded border border-[var(--border-soft)] bg-[var(--accent-soft)] px-2 text-meta font-medium text-[var(--accent)] transition-colors hover:border-[var(--accent)]"
           title="查看群日报"
         >
           <FileText size={12} />

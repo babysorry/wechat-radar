@@ -163,11 +163,11 @@ export default function TopicsPage() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border-soft)] bg-[var(--chrome-bg)] px-6 py-3 backdrop-blur">
           <div>
             <div className="report-kicker">Cross-Group Topics</div>
-            <div className="flex items-center gap-2 text-[15px] font-semibold">
+            <div className="flex items-center gap-2 text-title font-semibold">
               <Sparkles size={16} className="text-[var(--accent)]" />
               话题雷达 · 跨群聚合
             </div>
-            <div className="mt-0.5 text-[11px] text-[var(--text-3)]">
+            <div className="mt-0.5 text-meta text-[var(--text-3)]">
               {info ?? (loading ? '加载话题中…' : buildStatus?.enabled === false ? 'AI 话题分析尚未启用' : `${date} · ${topics.length} 个话题`)}
             </div>
           </div>
@@ -180,7 +180,7 @@ export default function TopicsPage() {
                 disabled={busy}
                 value={date}
                 onChange={(e) => { if (e.target.value) { setDate(e.target.value); setSelected(null); setDetail(null); } }}
-                className="theme-date-input bg-transparent text-[12px] outline-none"
+                className="theme-date-input bg-transparent text-body outline-none"
               />
             </div>
             <button className={`btn ${busy ? 'btn-warn' : 'btn-primary'}`} onClick={build} disabled={busy || loading || !buildStatus?.enabled} title={buildStatus?.disabledReason ?? undefined}>
@@ -191,15 +191,15 @@ export default function TopicsPage() {
         </div>
 
         {buildStatus?.enabled === false && <div role="status" className="border-b border-[var(--border-soft)] bg-[var(--accent-soft)] px-6 py-4">
-          <div className="text-[13px] font-medium">AI 话题分析尚未启用</div>
-          <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-2)]">话题雷达会把各个群的相关讨论合并成话题，并生成标题、摘要和原消息入口。开启后会将筛选后的群聊消息提交给 AI 服务分析。</p>
+          <div className="text-body font-medium">AI 话题分析尚未启用</div>
+          <p className="mt-1 text-body leading-relaxed text-[var(--text-2)]">话题雷达会把各个群的相关讨论合并成话题，并生成标题、摘要和原消息入口。开启后会将筛选后的群聊消息提交给 AI 服务分析。</p>
         </div>}
-        {error && <div role="alert" className="bg-[var(--danger-soft)] px-6 py-3 text-[12px] text-[var(--danger)]">{error}<button className="ml-3 underline" onClick={() => void reload()} disabled={busy}>重试</button></div>}
+        {error && <div role="alert" className="bg-[var(--danger-soft)] px-6 py-3 text-body text-[var(--danger)]">{error}<button className="ml-3 underline" onClick={() => void reload()} disabled={busy}>重试</button></div>}
 
         <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden xl:grid-cols-[420px_minmax(0,1fr)]">
           <div className="overflow-y-auto border-r border-[var(--border-soft)] p-4">
             {topics.length === 0 ? (
-              <div className="py-16 text-center text-[12px] text-[var(--text-3)]">
+              <div className="py-16 text-center text-body text-[var(--text-3)]">
                 {loading ? '加载话题中…' : busy ? '正在分析当日讨论…' : buildStatus?.enabled === false ? '尚未生成话题，需要先启用 AI 分析' : '当日暂无话题，点击“构建话题”开始分析'}
               </div>
             ) : (
@@ -217,14 +217,14 @@ export default function TopicsPage() {
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <div className="text-[14px] font-semibold text-[var(--text)]">{t.title}</div>
+                        <div className="text-section font-semibold text-[var(--text)]">{t.title}</div>
                         {t.summary && (
-                          <div className="mt-1 line-clamp-2 text-[11px] text-[var(--text-3)]">
+                          <div className="mt-1 line-clamp-2 text-body text-[var(--text-3)]">
                             {t.summary}
                           </div>
                         )}
                       </div>
-                      <div className="text-right text-[10px] text-[var(--text-3)] shrink-0">
+                      <div className="text-right text-meta text-[var(--text-3)] shrink-0">
                         <div className="font-semibold text-[var(--accent)]">{t.message_count}</div>
                         <div>{t.group_count} 群</div>
                       </div>
@@ -237,19 +237,19 @@ export default function TopicsPage() {
 
           <div className="overflow-y-auto p-5">
             {!selectedDetail ? (
-              <div className="flex h-full flex-col items-center justify-center gap-3 text-[12px] text-[var(--text-3)]">
+              <div className="flex h-full flex-col items-center justify-center gap-3 text-body text-[var(--text-3)]">
                 <span>{buildStatus?.enabled === false && topics.length === 0 ? '群聊同步和统计可继续正常使用' : '选择一个话题查看跨群讨论'}</span>
                 {buildStatus?.enabled === false && topics.length === 0 && <Link href="/groups" className="btn">查看群聊</Link>}
               </div>
             ) : (
               <div>
-                <div className="mb-2 text-[18px] font-semibold">{selectedDetail.topic.title}</div>
+                <div className="mb-2 text-heading font-semibold">{selectedDetail.topic.title}</div>
                 {selectedDetail.topic.summary && (
-                  <div className="mb-4 text-[13px] leading-relaxed text-[var(--text-2)]">
+                  <div className="mb-4 text-body leading-relaxed text-[var(--text-2)]">
                     {selectedDetail.topic.summary}
                   </div>
                 )}
-                <div className="mb-4 flex gap-4 text-[11px] text-[var(--text-3)]">
+                <div className="mb-4 flex gap-4 text-meta text-[var(--text-3)]">
                   <span>消息：{selectedDetail.topic.message_count}</span>
                   <span>跨群：{selectedDetail.topic.group_count}</span>
                   <span>日期：{selectedDetail.topic.date}</span>
@@ -259,9 +259,9 @@ export default function TopicsPage() {
                   {selectedDetail.messages.map((m) => (
                     <div
                       key={`${m.chatroom_id}-${m.local_id}`}
-                      className="card p-3 text-[12px]"
+                      className="card p-3 text-body"
                     >
-                      <div className="flex items-center justify-between text-[11px] text-[var(--text-3)]">
+                      <div className="flex items-center justify-between text-meta text-[var(--text-3)]">
                         <span>
                           <Link
                             href={`/groups/${encodeURIComponent(m.chatroom_id)}?date=${selectedDetail.topic.date}`}

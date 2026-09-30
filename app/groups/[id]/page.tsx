@@ -155,12 +155,12 @@ export default function GroupDetailPage({
           type: 'category',
           data: data.stats.by_hour.map((h) => `${h.hour}:00`),
           axisLine: { lineStyle: { color: '#27342c' } },
-          axisLabel: { color: '#737f75', fontSize: 10 },
+          axisLabel: { color: '#737f75', fontSize: 14 },
         },
         yAxis: {
           type: 'value',
           splitLine: { lineStyle: { color: 'rgba(154,174,158,0.12)' } },
-          axisLabel: { color: '#737f75', fontSize: 10 },
+          axisLabel: { color: '#737f75', fontSize: 14 },
         },
         series: [
           {
@@ -187,12 +187,12 @@ export default function GroupDetailPage({
             type: 'category',
             data: data.daily_history.map((d) => d.date.slice(5)),
             axisLine: { lineStyle: { color: '#27342c' } },
-            axisLabel: { color: '#737f75', fontSize: 10 },
+            axisLabel: { color: '#737f75', fontSize: 14 },
           },
           yAxis: {
             type: 'value',
             splitLine: { lineStyle: { color: 'rgba(154,174,158,0.12)' } },
-            axisLabel: { color: '#737f75', fontSize: 10 },
+            axisLabel: { color: '#737f75', fontSize: 14 },
           },
           series: [
             {
@@ -218,10 +218,10 @@ export default function GroupDetailPage({
             </Link>
             <div className="min-w-0">
               <div className="report-kicker">Group Brief</div>
-              <div className="truncate text-[15px] font-semibold">
+              <div className="truncate text-title font-semibold">
                 {data?.stats?.chat ?? (loading ? '加载中…' : chatroomId)}
               </div>
-              <div className="mt-0.5 text-[11px] text-[var(--text-3)]">
+              <div className="mt-0.5 text-meta text-[var(--text-3)]">
                 {date} · 当日 {data?.stats?.total ?? 0} 条 · 历史 {data?.daily_history?.length ?? 0} 天
               </div>
             </div>
@@ -233,7 +233,7 @@ export default function GroupDetailPage({
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="theme-date-input bg-transparent text-[12px] outline-none"
+                className="theme-date-input bg-transparent text-body outline-none"
               />
             </div>
             <button className={`btn ${fav ? 'btn-warn' : ''}`} onClick={toggleFav}>
@@ -244,17 +244,17 @@ export default function GroupDetailPage({
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-5">
-          {err && <div className="card p-4 text-[12px] text-[var(--danger)]">{err}</div>}
+          {err && <div className="card p-4 text-body text-[var(--danger)]">{err}</div>}
 
           {/* 历史日活跃柱图 */}
           {dailyOption && (
             <div className="card p-5">
               <div className="mb-2 flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-[14px] font-semibold">
+                <div className="flex items-center gap-1.5 text-section font-semibold">
                   <History size={14} className="text-[var(--accent)]" />
                   历史每日消息量
                 </div>
-                <div className="text-[11px] text-[var(--text-3)]">
+                <div className="text-meta text-[var(--text-3)]">
                   共 {data!.daily_history.length} 天 · 点选日期查看
                 </div>
               </div>
@@ -274,7 +274,7 @@ export default function GroupDetailPage({
           {/* 当日 24 小时分布 */}
           {hourOption && (data?.stats?.total ?? 0) > 0 && (
             <div className="card mt-4 p-5">
-              <div className="mb-2 flex items-center gap-1.5 text-[14px] font-semibold">
+              <div className="mb-2 flex items-center gap-1.5 text-section font-semibold">
                 <BarChart3 size={14} className="text-[var(--accent)]" />
                 {date} 24 小时分布
               </div>
@@ -286,7 +286,7 @@ export default function GroupDetailPage({
           {data?.stats && data.stats.total > 0 && (
             <div className="mt-4 grid grid-cols-2 gap-4">
               <div className="card p-5">
-                <div className="mb-3 flex items-center gap-1.5 text-[14px] font-semibold">
+                <div className="mb-3 flex items-center gap-1.5 text-section font-semibold">
                   <Trophy size={14} className="text-[var(--warn)]" />
                   Top 发言人
                 </div>
@@ -294,7 +294,7 @@ export default function GroupDetailPage({
                   {data.stats.top_senders.slice(0, 12).map((s, i) => (
                     <div
                       key={`${s.sender}-${i}`}
-                      className="flex items-center justify-between text-[13px]"
+                      className="flex items-center justify-between text-body"
                     >
                       <span className="truncate text-[var(--text-2)]">
                         {i + 1}. {s.sender}
@@ -306,7 +306,7 @@ export default function GroupDetailPage({
               </div>
 
               <div className="card p-5">
-                <div className="mb-3 flex items-center gap-1.5 text-[14px] font-semibold">
+                <div className="mb-3 flex items-center gap-1.5 text-section font-semibold">
                   <ListFilter size={14} className="text-[var(--accent)]" />
                   消息类型
                 </div>
@@ -314,7 +314,7 @@ export default function GroupDetailPage({
                   {data.stats.by_type.map((t, i) => (
                     <div
                       key={`${t.type}-${i}`}
-                      className="flex items-center justify-between text-[13px]"
+                      className="flex items-center justify-between text-body"
                     >
                       <span className="text-[var(--text-2)]">{t.type}</span>
                       <span className="tabular-nums text-[var(--text)]">{t.count}</span>
@@ -328,13 +328,13 @@ export default function GroupDetailPage({
           {/* 当日完整消息列表 */}
           <div className="card mt-4 overflow-hidden">
             <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-5 py-3">
-              <div className="flex items-center gap-1.5 text-[14px] font-semibold">
+              <div className="flex items-center gap-1.5 text-section font-semibold">
                 <MessageSquare size={14} className="text-[var(--accent)]" />
                 {date} 完整消息
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  className="btn py-1 text-[12px]"
+                  className="btn py-1 text-body"
                   onClick={copyMessages}
                   disabled={loading || (data?.recent.length ?? 0) === 0}
                   title="复制当日完整消息"
@@ -342,13 +342,13 @@ export default function GroupDetailPage({
                   {copied ? <Check size={13} /> : <Copy size={13} />}
                   <span>{copied ? '已复制' : '复制'}</span>
                 </button>
-                <div className="text-[11px] text-[var(--text-3)]">
+                <div className="text-meta text-[var(--text-3)]">
                   {loading ? '加载中…' : `共 ${data?.recent.length ?? 0} 条`}
                 </div>
               </div>
             </div>
             {!loading && data?.recent && data.recent.length === 0 ? (
-              <div className="py-12 text-center text-[12px] text-[var(--text-3)]">
+              <div className="py-12 text-center text-body text-[var(--text-3)]">
                 当日无消息
               </div>
             ) : (
@@ -356,13 +356,13 @@ export default function GroupDetailPage({
                 {(data?.recent ?? []).map((m) => (
                   <div
                     key={m.local_id}
-                    className="grid grid-cols-[120px_1fr_60px_70px] gap-3 px-5 py-2 text-[12px] hover:bg-[var(--surface-2)]"
+                    className="grid grid-cols-[120px_1fr_60px_70px] gap-3 px-5 py-2 text-body hover:bg-[var(--surface-2)]"
                   >
                     <span className="truncate font-medium text-[var(--text)]">{m.sender}</span>
                     <div className="text-[var(--text-2)]">
                       <MessageContent content={m.content} chatroomId={chatroomId} />
                     </div>
-                    <span className="text-right text-[10px] text-[var(--text-3)]">{m.type}</span>
+                    <span className="text-right text-caption text-[var(--text-3)]">{m.type}</span>
                     <span className="text-right text-[var(--text-3)] tabular-nums">
                       {m.time.slice(11)}
                     </span>
