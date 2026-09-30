@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
 import MessageContent from '@/components/MessageContent';
@@ -41,30 +41,37 @@ export default function TopicsPage() {
   const [selected, setSelected] = useState<number | null>(null);
   const [detail, setDetail] = useState<{ topic: Topic; messages: TopicMessage[] } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [buildStatus, setBuildStatus] = useState<{ enabled: boolean; disabledReason: string | null } | null>(null);
   const [info, setInfo] = useState<string | undefined>(undefined);
-  const autoBuildDates = useRef(new Set<string>());
 
-  const reload = useCallback(async () => {
+  const reload = useCallback(async (signal?: AbortSignal) => {
     try {
-      const r = await fetch(`/api/topics?date=${date}`);
+      const r = await fetch(`/api/topics?date=${date}`, { signal });
       const j = await r.json();
-      if (j.ok) setTopics(j.topics);
-    } catch {}
+      if (!r.ok || !j.ok) throw new Error(j.error ?? '话题加载失败');
+      if (signal?.aborted) return;
+      setTopics(j.topics);
+      setBuildStatus(j.build);
+      setError(null);
+    } catch (e) {
+      if (!signal?.aborted) setError(e instanceof Error ? e.message : '话题加载失败');
+    } finally {
+      if (!signal?.aborted) setLoading(false);
+    }
   }, [date]);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const r = await fetch(`/api/topics?date=${date}`);
-        const j = await r.json();
-        if (!cancelled && j.ok) setTopics(j.topics);
-      } catch {}
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [date]);
+    const controller = new AbortController();
+    queueMicrotask(() => {
+      if (controller.signal.aborted) return;
+      setLoading(true);
+      setInfo(undefined);
+      void reload(controller.signal);
+    });
+    return () => controller.abort();
+  }, [reload]);
 
   useEffect(() => {
     if (!selected) {
@@ -96,8 +103,9 @@ export default function TopicsPage() {
   const selectedDetail = selected ? detail : null;
 
   const build = useCallback(async () => {
+    if (!buildStatus?.enabled || busy) return;
     setBusy(true);
-    setInfo('启动 Codex CLI 话题聚合…');
+    setInfo('开始分析当日讨论…');
     try {
       const r = await fetch('/api/topics/build', {
         method: 'POST',
@@ -105,9 +113,8 @@ export default function TopicsPage() {
         body: JSON.stringify({ date }),
       });
       if (!r.ok || !r.body) {
-        setInfo('构建失败');
-        setBusy(false);
-        return;
+        const failure = await r.json().catch(() => null);
+        throw new Error(failure?.error ?? `话题构建失败（${r.status}）`);
       }
       const reader = r.body.getReader();
       const dec = new TextDecoder();
@@ -128,13 +135,13 @@ export default function TopicsPage() {
             } else if (evt.type === 'load') {
               setInfo(evt.message ?? '加载当日消息…');
             } else if (evt.type === 'llm' && evt.done !== undefined) {
-              setInfo(evt.message ?? `Codex 聚合 ${evt.done}/${evt.total}`);
+              setInfo(`AI 分析 ${evt.done}/${evt.total}`);
             } else if (evt.type === 'save' && evt.done !== undefined) {
               setInfo(`保存话题 ${evt.done}/${evt.total} · ${evt.message ?? ''}`);
             } else if (evt.type === 'finished' || evt.type === 'done') {
               setInfo(`完成 · ${evt.topics ?? evt.count ?? 0} 个话题`);
             } else if (evt.type === 'error') {
-              setInfo('错误：' + evt.error);
+              setInfo('构建失败：' + evt.error);
             } else if (evt.message) {
               setInfo(evt.message);
             }
@@ -142,24 +149,18 @@ export default function TopicsPage() {
         }
       }
     } catch (e) {
-      setInfo('错误：' + (e instanceof Error ? e.message : 'unknown'));
+      setInfo('构建失败：' + (e instanceof Error ? e.message : '请稍后重试'));
     } finally {
       setBusy(false);
       reload();
     }
-  }, [date, reload]);
-
-  useEffect(() => {
-    if (busy || topics.length > 0 || autoBuildDates.current.has(date)) return;
-    autoBuildDates.current.add(date);
-    build();
-  }, [build, busy, date, topics.length]);
+  }, [date, reload, buildStatus, busy]);
 
   return (
     <div className="flex h-screen">
       <Sidebar />
-      <main className="flex flex-1 flex-col overflow-hidden">
-        <div className="flex items-center justify-between border-b border-[var(--border-soft)] bg-[var(--chrome-bg)] px-6 py-3 backdrop-blur">
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border-soft)] bg-[var(--chrome-bg)] px-6 py-3 backdrop-blur">
           <div>
             <div className="report-kicker">Cross-Group Topics</div>
             <div className="flex items-center gap-2 text-[15px] font-semibold">
@@ -167,7 +168,7 @@ export default function TopicsPage() {
               话题雷达 · 跨群聚合
             </div>
             <div className="mt-0.5 text-[11px] text-[var(--text-3)]">
-              {info ?? `${date} · ${topics.length} 个话题`}
+              {info ?? (loading ? '加载话题中…' : buildStatus?.enabled === false ? 'AI 话题分析尚未启用' : `${date} · ${topics.length} 个话题`)}
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -175,23 +176,31 @@ export default function TopicsPage() {
               <Calendar size={13} className="text-[var(--text-3)]" />
               <input
                 type="date"
+                aria-label="话题日期"
+                disabled={busy}
                 value={date}
-                onChange={(e) => setDate(e.target.value)}
+                onChange={(e) => { if (e.target.value) { setDate(e.target.value); setSelected(null); setDetail(null); } }}
                 className="theme-date-input bg-transparent text-[12px] outline-none"
               />
             </div>
-            <button className={`btn ${busy ? 'btn-warn' : 'btn-primary'}`} onClick={build} disabled={busy}>
+            <button className={`btn ${busy ? 'btn-warn' : 'btn-primary'}`} onClick={build} disabled={busy || loading || !buildStatus?.enabled} title={buildStatus?.disabledReason ?? undefined}>
               <RefreshCw size={13} className={busy ? 'animate-spin' : ''} />
               <span>{busy ? '构建中…' : '构建话题'}</span>
             </button>
           </div>
         </div>
 
-        <div className="grid flex-1 grid-cols-[420px_1fr] overflow-hidden">
+        {buildStatus?.enabled === false && <div role="status" className="border-b border-[var(--border-soft)] bg-[var(--accent-soft)] px-6 py-4">
+          <div className="text-[13px] font-medium">AI 话题分析尚未启用</div>
+          <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-2)]">话题雷达会把各个群的相关讨论合并成话题，并生成标题、摘要和原消息入口。开启后会将筛选后的群聊消息提交给 AI 服务分析。</p>
+        </div>}
+        {error && <div role="alert" className="bg-[var(--danger-soft)] px-6 py-3 text-[12px] text-[var(--danger)]">{error}<button className="ml-3 underline" onClick={() => void reload()} disabled={busy}>重试</button></div>}
+
+        <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden xl:grid-cols-[420px_minmax(0,1fr)]">
           <div className="overflow-y-auto border-r border-[var(--border-soft)] p-4">
             {topics.length === 0 ? (
               <div className="py-16 text-center text-[12px] text-[var(--text-3)]">
-                {busy ? '正在自动构建当日话题…' : '当日暂无可聚合话题'}
+                {loading ? '加载话题中…' : busy ? '正在分析当日讨论…' : buildStatus?.enabled === false ? '尚未生成话题，需要先启用 AI 分析' : '当日暂无话题，点击“构建话题”开始分析'}
               </div>
             ) : (
               <div className="space-y-2">
@@ -228,8 +237,9 @@ export default function TopicsPage() {
 
           <div className="overflow-y-auto p-5">
             {!selectedDetail ? (
-              <div className="flex h-full items-center justify-center text-[12px] text-[var(--text-3)]">
-                左侧选一个话题查看跨群讨论
+              <div className="flex h-full flex-col items-center justify-center gap-3 text-[12px] text-[var(--text-3)]">
+                <span>{buildStatus?.enabled === false && topics.length === 0 ? '群聊同步和统计可继续正常使用' : '选择一个话题查看跨群讨论'}</span>
+                {buildStatus?.enabled === false && topics.length === 0 && <Link href="/groups" className="btn">查看群聊</Link>}
               </div>
             ) : (
               <div>

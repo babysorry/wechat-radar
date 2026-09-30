@@ -401,12 +401,21 @@ export interface TopicProgress {
   error?: string;
 }
 
+export function topicBuildStatus() {
+  const enabled = process.env.WECHAT_RADAR_AI_ENABLED !== '0';
+  return {
+    enabled,
+    disabledReason: enabled ? null : 'AI 话题分析尚未启用。开启后会将筛选后的群聊消息提交给 AI 服务分析。',
+  };
+}
+
 export async function buildTopicsForDate(
   date: string,
   onProgress?: (p: TopicProgress) => void,
 ): Promise<{ topics: number; messages: number }> {
-  if (process.env.WECHAT_RADAR_AI_ENABLED === '0') {
-    throw new Error('本机部署尚未开启 AI 话题分析');
+  const status = topicBuildStatus();
+  if (!status.enabled) {
+    throw new Error(status.disabledReason!);
   }
   onProgress?.({ type: 'load', message: '加载当日消息…' });
   const msgs = loadCandidateMessages(date);

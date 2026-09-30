@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "test:categories": "node --test tests/category-management.test.cjs",
+    "test:topics": "node --test tests/topic-build.test.cjs",
     "demo:seed": "node scripts/seed_demo.cjs"
   },
   "dependencies": {
