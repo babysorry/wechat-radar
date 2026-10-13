@@ -5,6 +5,8 @@ import { normalizeDate, normalizeRangeKey, rangeToWindow, type RangeKey } from '
 import { readConfig } from '@/lib/config';
 import { cache, CK } from '@/lib/cache';
 import { buildTopicsForDate } from '@/lib/topics';
+import { clearDashboardIntelligence } from '@/lib/dashboard-intelligence';
+import { clearDailyLinkIntelligence } from '@/lib/link-intelligence';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 1800; // 30 min
@@ -66,15 +68,19 @@ export async function POST(req: NextRequest) {
           onProgress: (p) => send(p),
         });
 
+        const syncedDates = datesBetween(since, until);
+        cache.del(CK.sessions());
+        clearDashboardIntelligence();
+        for (const date of syncedDates) clearDailyLinkIntelligence(date);
+
         const topicDays = autoTopicDays(body.full);
-        const topicDates = topicDays > 0 ? datesBetween(since, until).slice(-topicDays) : [];
+        const topicDates = topicDays > 0 ? syncedDates.slice(-topicDays) : [];
         send({ type: 'topics_start', dates: topicDates.length });
         for (const date of topicDates) {
           send({ type: 'topics_date', date, message: '开始构建话题…' });
           await buildTopicsForDate(date, (p) => send({ ...p, type: `topics_${p.type}`, date }));
         }
 
-        cache.del(CK.sessions());
         send({
           type: 'finished',
           ok: result.ok,

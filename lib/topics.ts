@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { db } from './db';
 import { wxSessions } from './wx';
+import { createNameResolver } from './wechat-names';
 
 const MIN_MESSAGES_PER_TOPIC = 4;
 const MIN_MESSAGE_LENGTH = 20;
@@ -517,7 +518,7 @@ export async function getTopicDetail(id: number): Promise<TopicDetail | null> {
 
   const rows = db()
     .prepare(
-      `SELECT m.chatroom_id, m.local_id, m.sender, m.content, m.time, m.timestamp, m.type, tm.score
+      `SELECT m.chatroom_id, m.local_id, m.sender, m.sender_username, m.content, m.time, m.timestamp, m.type, tm.score
        FROM topic_messages tm
        JOIN messages m ON m.chatroom_id = tm.chatroom_id AND m.local_id = tm.local_id
        WHERE tm.topic_id = ?
@@ -527,6 +528,7 @@ export async function getTopicDetail(id: number): Promise<TopicDetail | null> {
     chatroom_id: string;
     local_id: number;
     sender: string;
+    sender_username: string;
     content: string;
     time: string;
     timestamp: number;
@@ -535,6 +537,7 @@ export async function getTopicDetail(id: number): Promise<TopicDetail | null> {
   }>;
 
   const sessions = await wxSessions(500).catch(() => []);
+  const names = createNameResolver();
   const nameMap = new Map<string, string>();
   for (const s of sessions) nameMap.set(s.username, s.chat);
 
@@ -542,7 +545,8 @@ export async function getTopicDetail(id: number): Promise<TopicDetail | null> {
     ...topic,
     messages: rows.map((r) => ({
       ...r,
-      chat_name: nameMap.get(r.chatroom_id) ?? r.chatroom_id,
+      sender: names.sender(r.chatroom_id, r.sender, r.sender_username),
+      chat_name: nameMap.get(r.chatroom_id) ?? names.chat(r.chatroom_id),
     })),
   };
 }

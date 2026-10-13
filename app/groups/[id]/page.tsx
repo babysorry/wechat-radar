@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import MessageContent from '@/components/MessageContent';
+import GroupCategorySelect from '@/components/GroupCategorySelect';
 import {
   ArrowLeft,
   BarChart3,
@@ -211,7 +212,7 @@ export default function GroupDetailPage({
     <div className="flex h-screen">
       <Sidebar />
       <main className="flex flex-1 flex-col overflow-hidden">
-        <div className="flex items-center justify-between border-b border-[var(--border-soft)] bg-[var(--chrome-bg)] px-6 py-3 backdrop-blur">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border-soft)] bg-[var(--chrome-bg)] px-6 py-3 backdrop-blur">
           <div className="flex items-center gap-3 min-w-0">
             <Link href="/" className="shrink-0 text-[var(--text-3)] hover:text-[var(--text)]">
               <ArrowLeft size={16} />
@@ -223,6 +224,9 @@ export default function GroupDetailPage({
               </div>
               <div className="mt-0.5 text-meta text-[var(--text-3)]">
                 {date} · 当日 {data?.stats?.total ?? 0} 条 · 历史 {data?.daily_history?.length ?? 0} 天
+              </div>
+              <div className="mt-2">
+                <GroupCategorySelect key={chatroomId} chatroomId={chatroomId} />
               </div>
             </div>
           </div>
@@ -358,7 +362,7 @@ export default function GroupDetailPage({
                     key={m.local_id}
                     className="grid grid-cols-[120px_1fr_60px_70px] gap-3 px-5 py-2 text-body hover:bg-[var(--surface-2)]"
                   >
-                    <span className="truncate font-medium text-[var(--text)]">{m.sender}</span>
+                    <span title={m.sender} className="truncate font-medium text-[var(--text)]">{m.sender}</span>
                     <div className="text-[var(--text-2)]">
                       <MessageContent content={m.content} chatroomId={chatroomId} />
                     </div>

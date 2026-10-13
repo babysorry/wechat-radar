@@ -7,6 +7,7 @@ export interface MentionRow {
   chatroom_id: string;
   local_id: number;
   sender: string;
+  sender_username?: string;
   content: string;
   time: string;
   timestamp: number;
@@ -168,7 +169,9 @@ export function listMentions(limit = 100): MentionRow[] {
   ensureMentionIndexCurrent();
   return db()
     .prepare(
-      'SELECT chatroom_id, local_id, sender, content, time, timestamp, seen FROM mentions ORDER BY timestamp DESC LIMIT ?',
+      `SELECT n.chatroom_id, n.local_id, n.sender, n.content, n.time, n.timestamp, n.seen, m.sender_username
+       FROM mentions n LEFT JOIN messages m ON m.chatroom_id = n.chatroom_id AND m.local_id = n.local_id
+       ORDER BY n.timestamp DESC LIMIT ?`,
     )
     .all(limit) as MentionRow[];
 }

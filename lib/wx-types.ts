@@ -18,6 +18,7 @@ export interface WxStatsBucket {
 
 export interface WxStatsSender {
   sender: string;
+  sender_username?: string;
   count: number;
 }
 
@@ -40,7 +41,11 @@ export interface WxStats {
 export interface WxMessage {
   local_id: number;
   sender: string;
+  sender_username?: string;
+  sender_contact_display?: string;
+  sender_group_nickname?: string;
   content: string;
+  url?: string;
   time: string;
   timestamp: number;
   type: string;
@@ -53,6 +58,9 @@ export interface WxNewMessage extends WxMessage {
 
 export interface WxMember {
   username: string;
+  display?: string;
+  contact_display?: string;
+  group_nickname?: string;
   nickname?: string;
   display_name?: string;
 }

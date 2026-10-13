@@ -107,6 +107,57 @@ test('category migration, mutations and classifier persistence', async (t) => {
       assert.equal(groups.listGroups().find((g) => g.id === id).emoji, null);
     });
 
+    const tagRoute = require('../app/api/group-tags/route.ts');
+    const categoryRequest = (body) => new NextRequest('http://localhost:3000/api/group-tags', {
+      method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
+    });
+    const manualRoom = 'manual@chatroom';
+
+    await t.test('detail category changes replace all prior tags and preserve favorites and messages', async () => {
+      groups.tagGroup(manualRoom, 10);
+      groups.tagGroup(manualRoom, 20);
+      groups.setFavorite(manualRoom, true);
+      const response = await tagRoute.PATCH(categoryRequest({ chatroom_id: manualRoom, group_id: 30 }));
+      assert.equal(response.status, 200);
+      assert.deepEqual((await response.json()).group_ids, [30]);
+      assert.deepEqual(groups.tagsForChatroom(manualRoom), [30]);
+      assert.deepEqual(groups.tagsForChatroom('fixture@chatroom'), [10, 20]);
+      assert.equal(groups.isFavorite(manualRoom), true);
+      assert.equal(connection.prepare('SELECT COUNT(*) AS n FROM messages').get().n, 1);
+    });
+
+    await t.test('deleted or invalid dropdown options cannot clear a previous classification', async () => {
+      assert.equal((await tagRoute.PATCH(categoryRequest({ chatroom_id: manualRoom, group_id: 999 }))).status, 404);
+      assert.deepEqual(groups.tagsForChatroom(manualRoom), [30]);
+      for (const body of [
+        { chatroom_id: manualRoom, group_id: -1 }, { chatroom_id: manualRoom, group_id: '30' },
+        { chatroom_id: manualRoom }, { chatroom_id: ' ', group_id: 30 },
+      ]) assert.equal((await tagRoute.PATCH(categoryRequest(body))).status, 400);
+      assert.deepEqual(groups.tagsForChatroom(manualRoom), [30]);
+      assert.equal((await tagRoute.PATCH(categoryRequest({ chatroom_id: 'missing@chatroom', group_id: 999 }))).status, 404);
+      assert.equal(groups.listManualCategoryChatrooms().has('missing@chatroom'), false);
+    });
+
+    await t.test('unclassified choices override heuristics and update sidebar counts immediately', async () => {
+      require('../lib/wx.ts').wxSessions = async () => [{ username: manualRoom, chat: '小区篮球群', summary: '', is_group: true }];
+      assert.equal(classifier.classifyGroupHeuristic('小区篮球群', '', groups.listGroups()).group_id, 10);
+      assert.equal((await tagRoute.PATCH(categoryRequest({ chatroom_id: manualRoom, group_id: null }))).status, 200);
+      assert.deepEqual(groups.tagsForChatroom(manualRoom), []);
+      assert.equal(groups.listManualCategoryChatrooms().has(manualRoom), true);
+      const sessions = await (await require('../app/api/sessions/route.ts').GET()).json();
+      assert.deepEqual(sessions.groups[0].group_ids, []);
+      assert.equal(sessions.categories.every((category) => category.member_count === 0), true);
+      const statsRoute = require('../app/api/stats/route.ts');
+      const unclassifiedStats = await (await statsRoute.GET(new NextRequest('http://localhost/api/stats?date=2026-09-30&range=day'))).json();
+      assert.equal(unclassifiedStats.sidebar_counts.unsorted, 1);
+      assert.equal((await tagRoute.PATCH(categoryRequest({ chatroom_id: manualRoom, group_id: 30 }))).status, 200);
+      const assigned = await (await require('../app/api/sessions/route.ts').GET()).json();
+      assert.deepEqual(assigned.groups[0].group_ids, [30]);
+      assert.equal(assigned.categories.find((category) => category.id === 30).member_count, 1);
+      const assignedStats = await (await statsRoute.GET(new NextRequest('http://localhost/api/stats?date=2026-09-30&range=day'))).json();
+      assert.equal(assignedStats.sidebar_counts.unsorted, 0);
+    });
+
     await t.test('smart classification uses the same renamed category and rejects stale batches atomically', async () => {
       require('../lib/wx.ts').wxSessions = async () => [{ username: 'suggestion@chatroom', chat: '小区篮球群', summary: '', is_group: true }];
       const classifyRoute = require('../app/api/ai-classify/route.ts');
@@ -137,6 +188,8 @@ test('category migration, mutations and classifier persistence', async (t) => {
       assert.equal(restored.listGroups().some((g) => g.id === 10), false);
       assert.equal(restored.listGroups().some((g) => g.name === '团队'), true);
       assert.deepEqual(restored.tagsForChatroom('fixture@chatroom'), [20]);
+      assert.deepEqual(restored.tagsForChatroom(manualRoom), [30]);
+      assert.equal(restored.listManualCategoryChatrooms().has(manualRoom), true);
       assert.equal(connection.prepare('SELECT COUNT(*) AS n FROM messages').get().n, 1);
     });
 

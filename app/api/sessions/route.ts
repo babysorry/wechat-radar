@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server';
 import { wxSessions } from '@/lib/wx';
 import type { WxSession } from '@/lib/wx-types';
 import { cache, CK } from '@/lib/cache';
-import { listGroups, listAllTags, listFavorites } from '@/lib/groups';
+import { listGroups, listAllTags, listFavorites, listManualCategoryChatrooms } from '@/lib/groups';
 import { effectiveGroupIds } from '@/lib/group-classifier';
 import { db } from '@/lib/db';
 import { readConfig } from '@/lib/config';
+import { createNameResolver } from '@/lib/wechat-names';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +17,7 @@ export async function GET() {
     const groups = listGroups();
     const tags = listAllTags();
     const favorites = new Set(listFavorites());
+    const manualCategories = listManualCategoryChatrooms();
 
     const tagsByChatroom = new Map<string, number[]>();
     for (const t of tags) {
@@ -32,6 +34,7 @@ export async function GET() {
         s.summary,
         tagsByChatroom.get(s.username) ?? [],
         groups,
+        manualCategories.has(s.username),
       );
       return {
         chatroom_id: s.username,
@@ -111,12 +114,13 @@ function listLocalSessionsFallback(limit: number): WxSession[] {
     type: string;
   }>;
 
+  const names = createNameResolver();
   return rows.map((r) => ({
-    chat: r.chatroom_id,
+    chat: names.chat(r.chatroom_id),
     chat_type: 'group',
     is_group: true,
     last_msg_type: r.type,
-    last_sender: r.sender,
+    last_sender: names.sender(r.chatroom_id, r.sender),
     summary: r.content,
     time: r.time,
     timestamp: r.timestamp,

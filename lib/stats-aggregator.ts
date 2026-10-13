@@ -338,7 +338,7 @@ export async function rescan({
               chatroom_id: t.chatroomId,
               date: d,
               total: res.total ?? 0,
-              top_senders: res.top_senders ?? [],
+              top_senders: (res.top_senders ?? []).map((s) => ({ sender: s.sender_username || s.sender, count: s.count })),
               by_hour: res.by_hour ?? [],
             });
             ok++;

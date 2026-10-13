@@ -169,11 +169,16 @@ export default function IntelligenceBrief({ intelligence }: { intelligence?: Das
       <section className="card p-4">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <div className="report-kicker">Today Queue</div>
+            <div className="report-kicker">Daily Queue</div>
             <div className="mt-1 flex items-center gap-1.5 text-section font-semibold">
               <Sparkles size={14} className="text-[var(--accent)]" />
-              今日先看这些
+              当日先看这些
             </div>
+            {data.date && (
+              <div className="mt-1 text-caption text-[var(--text-3)]">
+                情报日期：{data.date} · 仅筛选当日消息
+              </div>
+            )}
             <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-4">
               <QueueBlock
                 label="消息"

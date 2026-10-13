@@ -56,6 +56,22 @@ export function untagGroup(chatroomId: string, groupId: number) {
     .run(chatroomId, groupId);
 }
 
+export function setChatroomCategory(chatroomId: string, groupId: number | null): boolean {
+  const connection = db();
+  return connection.transaction(() => {
+    if (groupId !== null && !connection.prepare('SELECT 1 FROM groups WHERE id = ?').get(groupId)) return false;
+    connection.prepare('DELETE FROM group_tags WHERE chatroom_id = ?').run(chatroomId);
+    if (groupId !== null) tagGroup(chatroomId, groupId);
+    connection.prepare('INSERT OR IGNORE INTO group_category_overrides (chatroom_id) VALUES (?)').run(chatroomId);
+    return true;
+  })();
+}
+
+export function listManualCategoryChatrooms(): Set<string> {
+  const rows = db().prepare('SELECT chatroom_id FROM group_category_overrides').all() as Array<{ chatroom_id: string }>;
+  return new Set(rows.map((row) => row.chatroom_id));
+}
+
 export function tagsForChatroom(chatroomId: string): number[] {
   const rows = db()
     .prepare('SELECT group_id FROM group_tags WHERE chatroom_id = ?')

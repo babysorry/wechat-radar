@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { wxSessions } from '@/lib/wx';
+import { createNameResolver } from '@/lib/wechat-names';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +17,7 @@ type SearchResult = {
 type MessageRow = {
   chatroom_id: string;
   sender: string;
+  sender_username: string;
   content: string;
   date: string;
   time: string;
@@ -39,6 +41,7 @@ type LinkRow = {
 
 type PersonRow = {
   sender: string;
+  chatroom_id: string;
   hits: number;
   groups: number;
   latest: string;
@@ -50,6 +53,7 @@ export async function GET(req: NextRequest) {
 
   const like = `%${q}%`;
   const nameMap = await loadGroupNames();
+  const names = createNameResolver();
   const results: SearchResult[] = [];
 
   for (const [chatroomId, name] of nameMap) {
@@ -85,39 +89,49 @@ export async function GET(req: NextRequest) {
 
   const people = db()
     .prepare(
-      `SELECT sender, COUNT(*) AS hits, COUNT(DISTINCT chatroom_id) AS groups, MAX(date) AS latest
-       FROM messages
-       WHERE sender LIKE ?
-       GROUP BY sender
+      `SELECT COALESCE(NULLIF(m.sender_username, ''), m.sender) AS sender,
+              m.chatroom_id, COUNT(*) AS hits, COUNT(DISTINCT m.chatroom_id) AS groups, MAX(m.date) AS latest
+       FROM messages m
+       LEFT JOIN wechat_names member ON member.scope = m.chatroom_id
+         AND member.username = COALESCE(NULLIF(m.sender_username, ''), m.sender)
+       LEFT JOIN wechat_names contact ON contact.scope = ''
+         AND contact.username = COALESCE(NULLIF(m.sender_username, ''), m.sender)
+       WHERE m.sender LIKE ? OR m.sender_username LIKE ? OR member.display_name LIKE ? OR contact.display_name LIKE ?
+       GROUP BY COALESCE(NULLIF(m.sender_username, ''), m.sender)
        ORDER BY hits DESC
        LIMIT 8`,
     )
-    .all(like) as PersonRow[];
+    .all(like, like, like, like) as PersonRow[];
   for (const p of people) {
     results.push({
       id: `person:${p.sender}`,
       type: 'person',
-      title: p.sender,
+      title: names.sender(p.chatroom_id, p.sender),
       subtitle: `${p.hits} 条消息 · ${p.groups} 个群 · 最近 ${p.latest}`,
-      href: `/signals?q=${encodeURIComponent(p.sender)}`,
+      href: `/signals?q=${encodeURIComponent(names.sender(p.chatroom_id, p.sender))}`,
     });
   }
 
   const messages = db()
     .prepare(
-      `SELECT chatroom_id, sender, content, date, time
-       FROM messages
-       WHERE content LIKE ? OR sender LIKE ?
-       ORDER BY timestamp DESC
+      `SELECT m.chatroom_id, m.sender, m.sender_username, m.content, m.date, m.time
+       FROM messages m
+       LEFT JOIN wechat_names member ON member.scope = m.chatroom_id
+         AND member.username = COALESCE(NULLIF(m.sender_username, ''), m.sender)
+       LEFT JOIN wechat_names contact ON contact.scope = ''
+         AND contact.username = COALESCE(NULLIF(m.sender_username, ''), m.sender)
+       WHERE m.content LIKE ? OR m.sender LIKE ? OR m.sender_username LIKE ?
+         OR member.display_name LIKE ? OR contact.display_name LIKE ?
+       ORDER BY m.timestamp DESC
        LIMIT 10`,
     )
-    .all(like, like) as MessageRow[];
+    .all(like, like, like, like, like) as MessageRow[];
   for (const m of messages) {
     results.push({
       id: `message:${m.chatroom_id}:${m.time}:${m.sender}`,
       type: 'message',
       title: compact(m.content || m.sender, 80),
-      subtitle: `${nameMap.get(m.chatroom_id) ?? m.chatroom_id} · ${m.sender} · ${m.time}`,
+      subtitle: `${nameMap.get(m.chatroom_id) ?? names.chat(m.chatroom_id)} · ${names.sender(m.chatroom_id, m.sender, m.sender_username)} · ${m.time}`,
       href: `/groups/${encodeURIComponent(m.chatroom_id)}?date=${m.date}`,
     });
   }
@@ -164,8 +178,9 @@ async function loadGroupNames(): Promise<Map<string, string>> {
        LIMIT 500`,
     )
     .all() as Array<{ chatroom_id: string }>;
+  const display = createNameResolver();
   for (const row of local) {
-    if (!names.has(row.chatroom_id)) names.set(row.chatroom_id, row.chatroom_id);
+    if (!names.has(row.chatroom_id)) names.set(row.chatroom_id, display.chat(row.chatroom_id));
   }
   return names;
 }

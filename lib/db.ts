@@ -37,6 +37,11 @@ function migrate(d: Database.Database) {
       FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE
     );
 
+    -- Preserve an explicit "未分组" choice instead of applying a heuristic again.
+    CREATE TABLE IF NOT EXISTS group_category_overrides (
+      chatroom_id TEXT PRIMARY KEY
+    );
+
     CREATE TABLE IF NOT EXISTS favorites (
       chatroom_id TEXT PRIMARY KEY,
       starred_at INTEGER NOT NULL
@@ -158,7 +163,18 @@ function migrate(d: Database.Database) {
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS wechat_names (
+      scope TEXT NOT NULL,
+      username TEXT NOT NULL,
+      display_name TEXT NOT NULL,
+      updated_at INTEGER NOT NULL,
+      PRIMARY KEY (scope, username)
+    );
   `);
+
+  ensureColumn(d, 'messages', 'sender_username', "TEXT NOT NULL DEFAULT ''");
+  d.exec('CREATE INDEX IF NOT EXISTS idx_messages_sender_username ON messages(sender_username)');
 
   ensureColumn(d, 'sync_state', 'status', "TEXT NOT NULL DEFAULT 'unknown'");
   ensureColumn(d, 'sync_state', 'last_error', 'TEXT');

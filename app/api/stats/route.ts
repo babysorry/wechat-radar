@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { wxSessions } from '@/lib/wx';
 import type { WxSession } from '@/lib/wx-types';
 import { listCachedStatsRange } from '@/lib/stats-aggregator';
-import { listAllTags, listGroups, listFavorites } from '@/lib/groups';
+import { listAllTags, listGroups, listFavorites, listManualCategoryChatrooms } from '@/lib/groups';
 import { effectiveGroupIds } from '@/lib/group-classifier';
 import { rangeToWindow, dateList, normalizeDate, normalizeRangeKey } from '@/lib/range';
 import { countMentionsBetween } from '@/lib/mentions';
@@ -10,6 +10,7 @@ import { buildDashboardIntelligence } from '@/lib/dashboard-intelligence';
 import { cache, CK } from '@/lib/cache';
 import { db } from '@/lib/db';
 import { readConfig } from '@/lib/config';
+import { createNameResolver } from '@/lib/wechat-names';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +22,7 @@ export async function GET(req: NextRequest) {
     const w = rangeToWindow(range, anchorDate);
 
   const sessions = await loadSessionsSafe(500);
+  const names = createNameResolver();
   const groups = sessions.filter((s) => s.is_group);
   const groupNames = new Map(groups.map((g) => [g.username, g.chat]));
   const allCount = groups.length;
@@ -61,7 +63,7 @@ export async function GET(req: NextRequest) {
       summary: g.summary,
       total: totalsByGroup.get(g.username) ?? 0,
       top_senders: Array.from(sendersByGroup.get(g.username)?.entries() ?? [])
-        .map(([sender, count]) => ({ sender, count }))
+        .map(([sender, count]) => ({ sender: names.sender(g.username, sender), sender_username: sender, count }))
         .sort((a, b) => b.count - a.count)
         .slice(0, 3),
     }))
@@ -70,6 +72,7 @@ export async function GET(req: NextRequest) {
 
   const tags = listAllTags();
   const cats = listGroups();
+  const manualCategories = listManualCategoryChatrooms();
   const tagsByChatroom = new Map<string, number[]>();
   for (const t of tags) {
     const arr = tagsByChatroom.get(t.chatroom_id) ?? [];
@@ -80,7 +83,7 @@ export async function GET(req: NextRequest) {
   for (const g of groups) {
     effectiveTagsByChatroom.set(
       g.username,
-      effectiveGroupIds(g.chat, g.summary, tagsByChatroom.get(g.username) ?? [], cats),
+      effectiveGroupIds(g.chat, g.summary, tagsByChatroom.get(g.username) ?? [], cats, manualCategories.has(g.username)),
     );
   }
   const taggedChatroomIds = new Set(
@@ -200,12 +203,13 @@ function listLocalSessionsFallback(limit: number): WxSession[] {
     type: string;
   }>;
 
+  const names = createNameResolver();
   return rows.map((r) => ({
-    chat: r.chatroom_id,
+    chat: names.chat(r.chatroom_id),
     chat_type: 'group',
     is_group: true,
     last_msg_type: r.type,
-    last_sender: r.sender,
+    last_sender: names.sender(r.chatroom_id, r.sender),
     summary: r.content,
     time: r.time,
     timestamp: r.timestamp,

@@ -1,6 +1,7 @@
 import { db } from './db';
 import { upsertLinksForMessage } from './message-links';
 import type { WxMessage } from './wx-types';
+import { rememberMessageNames } from './wechat-names';
 
 export interface MessageRow extends WxMessage {
   chatroom_id: string;
@@ -24,10 +25,15 @@ export function dateOfMessage(m: WxMessage): string {
 
 export function bulkInsertMessages(chatroomId: string, messages: WxMessage[]): number {
   if (messages.length === 0) return 0;
+  rememberMessageNames(chatroomId, messages);
   const stmt = db().prepare(`
     INSERT OR IGNORE INTO messages
-      (chatroom_id, local_id, sender, content, time, timestamp, type, date)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      (chatroom_id, local_id, sender, content, time, timestamp, type, date, sender_username)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  const updateIdentity = db().prepare(`
+    UPDATE messages SET sender_username = ?
+    WHERE chatroom_id = ? AND local_id = ? AND timestamp = ? AND sender_username = ''
   `);
   let inserted = 0;
   const tx = db().transaction((msgs: WxMessage[]) => {
@@ -42,12 +48,15 @@ export function bulkInsertMessages(chatroomId: string, messages: WxMessage[]): n
         m.timestamp ?? 0,
         m.type ?? '',
         dateOfMessage(m),
+        m.sender_username ?? '',
       );
+      if (!r.changes && m.sender_username) updateIdentity.run(m.sender_username, chatroomId, m.local_id, m.timestamp ?? 0);
       upsertLinksForMessage({
         chatroom_id: chatroomId,
         local_id: m.local_id,
         sender: m.sender ?? '',
         content: m.content ?? '',
+        url: m.url,
         time: m.time ?? '',
         timestamp: m.timestamp ?? 0,
         date: dateOfMessage(m),
@@ -59,10 +68,26 @@ export function bulkInsertMessages(chatroomId: string, messages: WxMessage[]): n
   return inserted;
 }
 
+export function backfillMessageIdentities(chatroomId: string, messages: WxMessage[]): number {
+  const connection = db();
+  const update = connection.prepare(`
+    UPDATE messages SET sender_username = ?
+    WHERE chatroom_id = ? AND local_id = ? AND timestamp = ? AND sender_username = ''
+  `);
+  return connection.transaction(() => {
+    rememberMessageNames(chatroomId, messages);
+    let updated = 0;
+    for (const m of messages) {
+      if (m.sender_username) updated += update.run(m.sender_username, chatroomId, m.local_id, m.timestamp).changes;
+    }
+    return updated;
+  })();
+}
+
 export function listMessagesForDate(chatroomId: string, date: string, limit = 1000): MessageRow[] {
   return db()
     .prepare(
-      `SELECT chatroom_id, local_id, sender, content, time, timestamp, type, date
+      `SELECT chatroom_id, local_id, sender, sender_username, content, time, timestamp, type, date
        FROM messages
        WHERE chatroom_id = ? AND date = ?
        ORDER BY timestamp ASC, local_id ASC
@@ -83,7 +108,7 @@ export function aggregateDailyStats(chatroomId: string, dates: string[]): DailyS
   const placeholders = dates.map(() => '?').join(',');
   const rows = db()
     .prepare(
-      `SELECT date, sender, timestamp, type
+      `SELECT date, COALESCE(NULLIF(sender_username, ''), sender) AS sender, timestamp, type
        FROM messages
        WHERE chatroom_id = ? AND date IN (${placeholders})`,
     )

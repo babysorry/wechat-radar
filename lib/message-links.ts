@@ -16,7 +16,7 @@ export interface ParsedMessageLink {
 
 type LinkInput = Pick<
   MessageRow,
-  'chatroom_id' | 'local_id' | 'date' | 'sender' | 'content' | 'time' | 'timestamp'
+  'chatroom_id' | 'local_id' | 'date' | 'sender' | 'content' | 'url' | 'time' | 'timestamp'
 >;
 
 export function decodeHtmlEntities(s: string): string {
@@ -41,6 +41,7 @@ export function normalizeUrl(raw: string): string | null {
   if (!raw || raw.includes('...') || raw.includes('…')) return null;
   try {
     const u = new URL(cleanUrl(raw));
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
     u.hash = '';
     for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content']) {
       u.searchParams.delete(key);
@@ -103,12 +104,17 @@ function titleFromContext(content: string, url: string): string | null {
   return lines.find((line) => !/^[@#\d\s:：-]+$/.test(line))?.slice(0, 160) ?? null;
 }
 
-export function extractMessageLinks(content: string): ParsedMessageLink[] {
+export function extractMessageLinks(content: string, shareUrl?: string): ParsedMessageLink[] {
   const decoded = decodeHtmlEntities(content);
   const hasXml = /<msg[\s>]|<appmsg[\s>]/i.test(decoded);
   const xmlTitle = tagText(decoded, 'title') || null;
   const xmlDescription = tagText(decoded, 'des') || tagText(decoded, 'digest') || null;
   const candidates: Array<{ url: string; source: MessageLinkSource; raw_kind: string; confidence: number }> = [];
+
+  // wx formats a share card's body as "[链接] 标题" and returns its URL separately.
+  if (shareUrl) {
+    candidates.push({ url: shareUrl, source: 'wechat_raw', raw_kind: 'appmsg_url_field', confidence: 1 });
+  }
 
   for (const tag of ['url', 'lowurl']) {
     const url = tagText(decoded, tag);
@@ -180,7 +186,7 @@ const upsertMessageLink = () =>
   `);
 
 export function upsertLinksForMessage(message: LinkInput): number {
-  const links = extractMessageLinks(message.content);
+  const links = extractMessageLinks(message.content, message.url);
   if (links.length === 0) return 0;
   const stmt = upsertMessageLink();
   let changed = 0;

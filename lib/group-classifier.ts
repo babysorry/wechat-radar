@@ -89,8 +89,10 @@ export function effectiveGroupIds(
   summary: string,
   explicitIds: number[],
   groups: GroupRow[],
+  manuallyCategorized = false,
 ): number[] {
   if (explicitIds.length > 0) return explicitIds;
+  if (manuallyCategorized) return [];
   const guess = classifyGroupHeuristic(name, summary, groups);
   return guess ? [guess.group_id] : [];
 }

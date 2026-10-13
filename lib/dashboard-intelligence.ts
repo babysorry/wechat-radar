@@ -1,6 +1,7 @@
 import { db } from './db';
 import { cache } from './cache';
 import { todayStr } from './range';
+import { createNameResolver } from './wechat-names';
 
 const MAX_ROWS = 1600;
 const MAX_MUST_READ = 8;
@@ -29,6 +30,7 @@ interface MessageSignalRow {
   chatroom_id: string;
   local_id: number;
   sender: string;
+  sender_username: string;
   content: string;
   time: string;
   timestamp: number;
@@ -145,18 +147,22 @@ export interface DashboardIntelligence {
   anomalies: DashboardAnomalySignal[];
 }
 
+export function clearDashboardIntelligence() {
+  cache.del(cache.keys().filter((key) => key.startsWith('dashboard-intelligence:')));
+}
+
 export function buildDashboardIntelligence(
   date = todayStr(),
   groupNames = new Map<string, string>(),
 ): DashboardIntelligence {
   date = resolveIntelligenceDate(date);
-  const key = `dashboard-intelligence:${date}:v14`;
+  const key = `dashboard-intelligence:${date}:v15`;
   const cached = cache.get(key) as DashboardIntelligence | undefined;
   if (cached) return cached;
 
   const rows = db()
     .prepare(
-      `SELECT chatroom_id, local_id, sender, content, time, timestamp
+      `SELECT chatroom_id, local_id, sender, sender_username, content, time, timestamp
        FROM messages
        WHERE date = ?
          AND length(content) >= 8
@@ -166,7 +172,7 @@ export function buildDashboardIntelligence(
     .all(date, MAX_ROWS) as MessageSignalRow[];
   const historyRows = db()
     .prepare(
-      `SELECT chatroom_id, local_id, sender, content, time, timestamp
+      `SELECT chatroom_id, local_id, sender, sender_username, content, time, timestamp
        FROM messages
        WHERE date >= ?
          AND date <= ?
@@ -207,6 +213,7 @@ export function buildDashboardIntelligence(
     content: string;
   }>;
 
+  const names = createNameResolver();
   const candidates: DashboardSignalItem[] = [];
   const opportunities: DashboardOpportunityItem[] = [];
   const seenOpportunities = new Set<string>();
@@ -255,9 +262,9 @@ export function buildDashboardIntelligence(
     const reasons = reasonsFor(clean);
     const item: DashboardSignalItem = {
       chatroom_id: row.chatroom_id,
-      chat_name: groupNames.get(row.chatroom_id) ?? row.chatroom_id,
+      chat_name: groupNames.get(row.chatroom_id) ?? names.chat(row.chatroom_id),
       local_id: row.local_id,
-      sender: row.sender || '未知成员',
+      sender: names.sender(row.chatroom_id, row.sender, row.sender_username) || '未知成员',
       time: row.time,
       title,
       snippet: clean.slice(0, 150),
@@ -274,9 +281,9 @@ export function buildDashboardIntelligence(
       }
     }
 
-    const sourceKey = item.sender.trim() || '未知成员';
+    const sourceKey = row.sender_username || row.sender || '未知成员';
     const source = sourceMap.get(sourceKey) ?? {
-      sender: sourceKey,
+      sender: item.sender,
       signal_count: 0,
       groups: new Set<string>(),
       topGroups: new Map<string, number>(),
@@ -678,6 +685,7 @@ function isArticleUrl(raw: string): boolean {
   try {
     const u = new URL(cleanUrl(raw));
     const host = u.hostname.replace(/^www\./, '');
+    if (/qlogo|qpic|support\.weixin|res\.wx/i.test(host)) return false;
     if (host === 'mp.weixin.qq.com') return true;
     if ((host === 'x.com' || host === 'twitter.com') && /\/status\/\d{12,}/.test(u.pathname)) return true;
     if (host === 'youtube.com' || host === 'youtu.be') return true;

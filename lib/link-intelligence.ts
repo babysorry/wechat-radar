@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { db } from './db';
 import { wxSessions } from './wx';
+import { createNameResolver } from './wechat-names';
 import { cache } from './cache';
 
 const MAX_MESSAGES = 5000;
@@ -61,6 +62,7 @@ interface MessageLinkRow {
   chatroom_id: string;
   local_id: number;
   sender: string;
+  sender_username: string;
   content: string;
   time: string;
   timestamp: number;
@@ -87,6 +89,7 @@ export interface LinkIntelligenceItem {
     chatroom_id: string;
     chat_name: string;
     sender: string;
+    sender_username?: string;
     time: string;
     local_id: number;
     snippet: string;
@@ -491,15 +494,28 @@ export async function getDailyLinkIntelligence(
   options: LinkIntelligenceOptions = {},
 ): Promise<LinkIntelligenceResult> {
   const refresh = options.refresh ?? false;
+  const sessions = await wxSessions(500).catch(() => []);
+  const display = createNameResolver();
+  const hydrateNames = (result: LinkIntelligenceResult): LinkIntelligenceResult => {
+    const hydrate = (items: LinkIntelligenceItem[]) => items.map((item) => ({
+      ...item,
+      sources: item.sources.map((s) => ({
+        ...s,
+        chat_name: display.chat(s.chatroom_id) === s.chatroom_id ? s.chat_name : display.chat(s.chatroom_id),
+        sender: display.sender(s.chatroom_id, s.sender, s.sender_username),
+      })),
+    }));
+    return { ...result, articles: hydrate(result.articles), tools: hydrate(result.tools) };
+  };
   const key = resultCacheKey(date);
   const cached = cache.get(key) as LinkIntelligenceResult | undefined;
-  if (cached && !refresh) return cached;
+  if (cached && !refresh) return hydrateNames(cached);
 
   if (!refresh) {
     const persisted = readPersistedLinkIntelligence(date);
     if (persisted) {
       cache.set(key, persisted, LINK_INTELLIGENCE_CACHE_TTL_SECONDS);
-      return persisted;
+      return hydrateNames(persisted);
     }
   }
 
@@ -509,6 +525,7 @@ export async function getDailyLinkIntelligence(
          m.chatroom_id,
          m.local_id,
          m.sender,
+         m.sender_username,
          m.content,
          m.time,
          m.timestamp,
@@ -529,7 +546,6 @@ export async function getDailyLinkIntelligence(
     )
     .all(date, MAX_MESSAGES) as MessageLinkRow[];
 
-  const sessions = await wxSessions(500).catch(() => []);
   const names = new Map<string, string>();
   for (const s of sessions) names.set(s.username, s.chat);
 
@@ -548,8 +564,9 @@ export async function getDailyLinkIntelligence(
       const existing = buckets.get(key);
       const source = {
         chatroom_id: row.chatroom_id,
-        chat_name: names.get(row.chatroom_id) ?? row.chatroom_id,
-        sender: row.sender,
+        chat_name: names.get(row.chatroom_id) ?? display.chat(row.chatroom_id),
+        sender: display.sender(row.chatroom_id, row.sender, row.sender_username),
+        sender_username: row.sender_username || row.sender,
         time: row.time,
         local_id: row.local_id,
         snippet: cleanSnippet(row.content),

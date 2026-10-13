@@ -1,5 +1,10 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { createConnection } from 'node:net';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+import { cache } from './cache';
+import { createNameResolver, rememberContactNames, rememberMemberNames, rememberSessionNames } from './wechat-names';
 import type {
   WxDaemonStatus,
   WxMember,
@@ -38,6 +43,7 @@ async function wxJson<T>(args: string[], opts = DEFAULT_OPTS): Promise<T> {
     history: ['messages'],
     'new-messages': ['messages'],
     members: ['members'],
+    contacts: ['contacts'],
   };
   const keys = arrayKeys[args[0]];
   if (keys) {
@@ -50,8 +56,86 @@ async function wxJson<T>(args: string[], opts = DEFAULT_OPTS): Promise<T> {
   return (parsed?.stats ?? parsed) as T;
 }
 
+const sessionLoads = new Map<number, Promise<WxSession[]>>();
 export async function wxSessions(limit = 500): Promise<WxSession[]> {
-  return wxJson<WxSession[]>(['sessions', '-n', String(limit)]);
+  const key = `wx:sessions:${limit}`;
+  const cached = cache.get<WxSession[]>(key);
+  if (cached) return cached;
+  const pending = sessionLoads.get(limit);
+  if (pending) return pending;
+  const load = loadSessions(limit).then((sessions) => {
+    cache.set(key, sessions, 30);
+    return sessions;
+  }).finally(() => { sessionLoads.delete(limit); });
+  sessionLoads.set(limit, load);
+  return load;
+}
+
+async function loadSessions(limit: number): Promise<WxSession[]> {
+  let sessions = await wxJson<WxSession[]>(['sessions', '-n', String(limit)]);
+  const groups = sessions.filter((s) => s.is_group);
+  // wx-cli can start before contact.db is ready and retain an empty Names map.
+  if (groups.length && groups.every((s) => !s.chat?.trim() || s.chat === s.username)) {
+    try {
+      await refreshDaemonNames();
+      sessions = await wxJson<WxSession[]>(['sessions', '-n', String(limit)]);
+    } catch (error) {
+      console.warn('wx contact refresh failed; retaining saved names', error);
+    }
+  }
+  rememberSessionNames(sessions);
+  await loadContactNames();
+  const names = createNameResolver();
+  return sessions.map((s) => ({
+    ...s,
+    chat: names.chat(s.username),
+    last_sender: names.sender(s.username, s.last_sender),
+  }));
+}
+
+let contactLoad: Promise<void> | undefined;
+async function loadContactNames() {
+  if (cache.get('wx:contacts:loaded')) return;
+  if (!contactLoad) {
+    contactLoad = wxJson<WxMember[]>(['contacts', '-n', '100000'])
+      .then((contacts) => {
+        rememberContactNames(contacts);
+        cache.set('wx:contacts:loaded', true, contacts.length ? 300 : 30);
+      })
+      .catch((error) => {
+        cache.set('wx:contacts:loaded', true, 30);
+        console.warn('wx contacts failed; retaining saved names', error);
+      })
+      .finally(() => { contactLoad = undefined; });
+  }
+  await contactLoad;
+}
+
+let daemonRefresh: Promise<void> | undefined;
+function refreshDaemonNames(): Promise<void> {
+  if (daemonRefresh) return daemonRefresh;
+  if (process.platform === 'win32' || cache.get('wx:names:refresh-attempt')) return Promise.resolve();
+  cache.set('wx:names:refresh-attempt', true, 60);
+  daemonRefresh = new Promise<void>((resolve, reject) => {
+    const socket = createConnection(join(homedir(), '.wx-cli', 'daemon.sock'));
+    let output = '';
+    socket.setTimeout(10_000, () => socket.destroy(new Error('wx contact refresh timed out')));
+    socket.on('connect', () => socket.write(`${JSON.stringify({ cmd: 'reload_config' })}\n`));
+    socket.on('error', reject);
+    socket.on('end', () => reject(new Error('wx contact refresh returned no response')));
+    socket.on('data', (data) => {
+      output += data.toString();
+      if (!output.includes('\n')) return;
+      try {
+        const response = JSON.parse(output.split('\n')[0]);
+        if (!response.ok) throw new Error(response.error || 'wx contact refresh failed');
+        cache.del('wx:contacts:loaded');
+        resolve();
+      } catch (error) { reject(error); }
+      finally { socket.destroy(); }
+    });
+  }).finally(() => { daemonRefresh = undefined; });
+  return daemonRefresh;
 }
 
 export async function wxStats(
@@ -109,7 +193,13 @@ export async function wxNewMessages(limit = 50): Promise<WxNewMessage[]> {
 }
 
 export async function wxMembers(chat: string): Promise<WxMember[]> {
-  return wxJson<WxMember[]>(['members', chat]);
+  const key = `wx:members:${chat}`;
+  const cached = cache.get<WxMember[]>(key);
+  if (cached) return cached;
+  const members = await wxJson<WxMember[]>(['members', chat]);
+  rememberMemberNames(chat, members);
+  cache.set(key, members, 300);
+  return members;
 }
 
 export async function wxDaemonStatus(): Promise<WxDaemonStatus> {
